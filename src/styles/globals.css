@@ -1,0 +1,238 @@
+/* ============================================
+   MINE STOCKS — Global Styles
+   ============================================ */
+
+@import './tokens.css';
+
+/* ── Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  font: var(--font-body-md);
+  font-family: var(--font-family);
+  color: var(--color-on-surface);
+  background-color: var(--color-background);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, select {
+  font: inherit;
+  color: inherit;
+  border: none;
+  outline: none;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ── App Shell ── */
+.app-shell {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  min-height: 100dvh;
+  position: relative;
+  background-color: var(--color-background);
+}
+
+.page {
+  padding: var(--space-md);
+  padding-top: calc(var(--safe-top) + var(--space-md));
+  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-lg));
+  min-height: 100dvh;
+  animation: pageEnter var(--duration-normal) var(--ease-out);
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Typography Utilities ── */
+.display-lg { font: var(--font-display-lg); letter-spacing: var(--tracking-tight); }
+.display-md { font: var(--font-display-md); letter-spacing: var(--tracking-tight); }
+.display-sm { font: var(--font-display-sm); letter-spacing: var(--tracking-tight); }
+.headline-lg { font: var(--font-headline-lg); }
+.headline-md { font: var(--font-headline-md); }
+.headline-sm { font: var(--font-headline-sm); }
+.title-lg { font: var(--font-title-lg); }
+.title-md { font: var(--font-title-md); }
+.title-sm { font: var(--font-title-sm); }
+.body-lg { font: var(--font-body-lg); }
+.body-md { font: var(--font-body-md); }
+.body-sm { font: var(--font-body-sm); }
+.label-lg { font: var(--font-label-lg); }
+.label-md { font: var(--font-label-md); }
+.label-sm { font: var(--font-label-sm); }
+
+/* ── Color Utilities ── */
+.text-primary { color: var(--color-primary); }
+.text-gain { color: var(--color-gain); }
+.text-loss { color: var(--color-loss); }
+.text-muted { color: var(--color-on-surface-variant); }
+.text-inverse { color: var(--color-on-primary); }
+
+/* ── Glass Utility ── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Gradient Text ── */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Loading Shimmer ── */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container-low) 0%,
+    var(--color-surface-container-high) 50%,
+    var(--color-surface-container-low) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* ── Focus Visible ── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: var(--color-primary-fixed);
+  color: var(--color-on-primary-container);
+}
+
+/* ── Pull to refresh indicator area ── */
+.ptr-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 0;
+  overflow: hidden;
+  transition: height var(--duration-normal) var(--ease-out);
+}
+
+/* ── Skeleton loader ── */
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-container-low);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-surface-container-high) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s ease-in-out infinite;
+  background-size: 200% 100%;
+}
+
+/* ── Toast notification ── */
+.toast {
+  position: fixed;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + var(--space-md));
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  font: var(--font-label-lg);
+  z-index: var(--z-toast);
+  opacity: 0;
+  transition: all var(--duration-normal) var(--ease-out);
+  white-space: nowrap;
+}
+
+.toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast.success {
+  background: var(--color-inverse-surface);
+  color: var(--color-inverse-on-surface);
+}
+
+.toast.error {
+  background: var(--color-error);
+  color: var(--color-on-error);
+}

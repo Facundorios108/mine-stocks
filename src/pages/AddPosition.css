@@ -1,0 +1,265 @@
+.add-position {
+  padding-top: calc(var(--safe-top) + var(--space-md));
+  padding-bottom: calc(var(--safe-bottom) + 80px);
+}
+
+/* ── Header ── */
+.add-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xl);
+}
+
+.add-back-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  color: var(--color-on-surface);
+  background: var(--color-surface-container-low);
+  transition: background var(--duration-fast), transform var(--duration-fast);
+}
+
+.add-back-btn:active {
+  transform: scale(0.92);
+  background: var(--color-surface-container);
+}
+
+.add-title {
+  font: var(--font-title-lg);
+  color: var(--color-on-surface);
+}
+
+/* ── Search Step ── */
+.add-search-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.add-search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-surface-container-low);
+  border-radius: var(--radius-md);
+  color: var(--color-on-surface-variant);
+  transition: background var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.add-search-field:focus-within {
+  background: var(--color-surface-container-lowest);
+  box-shadow: 0 0 0 2px rgba(0, 109, 61, 0.15);
+}
+
+.add-search-field input {
+  flex: 1;
+  font: var(--font-body-md);
+  color: var(--color-on-surface);
+}
+
+.add-search-field input::placeholder { color: var(--color-outline); }
+
+.add-searching {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.add-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.add-result-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-container-lowest);
+  width: 100%;
+  text-align: left;
+  transition: transform var(--duration-fast);
+}
+
+.add-result-item:active { transform: scale(0.98); }
+
+.add-result-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.add-result-avatar span { font: var(--font-title-sm); color: var(--color-on-surface); }
+
+.add-result-info { flex: 1; min-width: 0; }
+.add-result-symbol { font: var(--font-title-sm); color: var(--color-on-surface); }
+.add-result-name {
+  font: var(--font-body-sm);
+  color: var(--color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add-manual-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font: var(--font-title-sm);
+  color: var(--color-primary);
+  background: rgba(0, 109, 61, 0.08);
+  margin-top: var(--space-sm);
+}
+
+.add-no-results {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--color-on-surface-variant);
+  font: var(--font-body-md);
+}
+
+/* ── Form Step ── */
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Asset Preview Header */
+.add-asset-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-surface-container-lowest);
+  border-radius: var(--radius-md);
+}
+
+.preview-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.preview-avatar span {
+  font: var(--font-title-md);
+  color: var(--color-primary);
+}
+
+.preview-info { flex: 1; min-width: 0; }
+.preview-symbol { font: var(--font-title-lg); color: var(--color-on-surface); }
+.preview-name { font: var(--font-body-sm); color: var(--color-on-surface-variant); }
+
+.preview-edit-btn {
+  font: var(--font-label-lg);
+  color: var(--color-primary);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+/* Form Groups */
+.add-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.add-form-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.add-form-label {
+  font: var(--font-label-lg);
+  color: var(--color-on-surface-variant);
+  padding-left: 4px;
+}
+
+.add-form-field {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-surface-container-lowest);
+  border-radius: var(--radius-md);
+  transition: box-shadow var(--duration-fast);
+}
+
+.add-form-field:focus-within {
+  box-shadow: 0 0 0 2px rgba(0, 109, 61, 0.2);
+}
+
+.add-form-field input, .add-form-field textarea {
+  flex: 1;
+  width: 100%;
+  font: var(--font-body-lg);
+  color: var(--color-on-surface);
+}
+
+.add-form-field input::placeholder, .add-form-field textarea::placeholder {
+  color: var(--color-outline);
+}
+
+.add-form-field.textarea { align-items: flex-start; }
+.add-form-field textarea { resize: none; line-height: 1.5; }
+
+/* Type Chips */
+.add-type-chips {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.add-type-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font: var(--font-label-lg);
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface-variant);
+  transition: all var(--duration-fast);
+}
+
+.add-type-chip.selected {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+/* Submit */
+.add-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-lg);
+  background: var(--gradient-primary);
+  color: white;
+  border-radius: var(--radius-full);
+  font: var(--font-title-md);
+  box-shadow: 0 4px 20px rgba(0, 109, 61, 0.25);
+  margin-top: var(--space-md);
+  transition: transform var(--duration-fast);
+}
+
+.add-submit-btn:active { transform: scale(0.98); }
+.add-submit-btn:disabled { opacity: 0.5; pointer-events: none; }
