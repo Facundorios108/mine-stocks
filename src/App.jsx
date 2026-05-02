@@ -10,6 +10,7 @@ import Portfolio from './pages/Portfolio'
 import Search from './pages/Search'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
+import InstallBanner from './components/common/InstallBanner'
 import useAppStore from './store/useAppStore'
 import { TrendingUp } from 'lucide-react'
 import './styles/globals.css'
@@ -104,6 +105,7 @@ function AppContent() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <BottomNav />
+          <InstallBanner />
         </>
       )}
 

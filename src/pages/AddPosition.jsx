@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Search as SearchIcon, Check } from 'lucide-react'
 import { searchAssets } from '../services/marketData'
 import { addPosition, updatePosition } from '../services/firestore'
+import { haptic } from '../utils/haptics'
 import { usePortfolio } from '../hooks/usePortfolio'
 import useAppStore from '../store/useAppStore'
 import './AddPosition.css'
@@ -81,6 +82,7 @@ export default function AddPosition() {
   }, [])
 
   const selectAsset = (asset) => {
+    haptic.light()
     setFormData(prev => ({
       ...prev,
       symbol: asset.symbol,
@@ -91,6 +93,7 @@ export default function AddPosition() {
   }
 
   const handleManualEntry = () => {
+    haptic.light()
     setFormData(prev => ({
       ...prev,
       symbol: query.toUpperCase(),
@@ -103,6 +106,7 @@ export default function AddPosition() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!user) return
+    haptic.light()
 
     const positionData = {
       userId: user.uid,
@@ -118,18 +122,34 @@ export default function AddPosition() {
 
     try {
       setIsSubmitting(true)
-      if (editId) {
-        await updatePosition(user.uid, editId, positionData)
-        showToast('Posición actualizada')
-      } else {
-        await addPosition(user.uid, positionData)
-        showToast('Posición agregada con éxito', 'success')
+      
+      const saveAndRefresh = async () => {
+        if (editId) {
+          await updatePosition(user.uid, editId, positionData)
+          showToast('Posición actualizada')
+        } else {
+          await addPosition(user.uid, positionData)
+          showToast('Posición agregada con éxito', 'success')
+        }
+        haptic.success()
+        await refresh()
       }
-      await refresh()
+
+      // 10 second timeout
+      await Promise.race([
+        saveAndRefresh(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 10000))
+      ])
+
       navigate('/portfolio')
     } catch (error) {
-      console.error(error)
-      showToast('Error al guardar la posición', 'error')
+      haptic.error()
+      console.error('Error in save:', error)
+      if (error.message === 'TIMEOUT') {
+        showToast('Error de conexión, intenta de nuevo', 'error')
+      } else {
+        showToast('Error al guardar la posición', 'error')
+      }
     } finally {
       setIsSubmitting(false)
     }

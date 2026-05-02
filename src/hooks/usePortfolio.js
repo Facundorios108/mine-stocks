@@ -88,8 +88,8 @@ export function usePortfolio() {
     positions.forEach(pos => {
       const quote = quotes[pos.symbol]
       const currentPrice = quote?.c || 0
-      const cost = pos.quantity * pos.avgPrice
-      const value = pos.quantity * currentPrice
+      const cost = pos.shares * pos.averageCost
+      const value = pos.shares * currentPrice
 
       totalCost += cost
       totalValue += value
@@ -129,8 +129,8 @@ export function usePortfolio() {
       const currentPrice = quote?.c || 0
       const change = quote?.d || 0
       const changePercent = quote?.dp || 0
-      const cost = pos.quantity * pos.avgPrice
-      const value = pos.quantity * currentPrice
+      const cost = pos.shares * pos.averageCost
+      const value = pos.shares * currentPrice
       const pnl = value - cost
       const pnlPercent = cost > 0 ? (pnl / cost) * 100 : 0
 

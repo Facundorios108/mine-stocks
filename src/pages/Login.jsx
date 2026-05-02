@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '../services/auth'
+import { haptic } from '../utils/haptics'
 import { TrendingUp, Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react'
 import './Login.css'
 
@@ -13,11 +14,14 @@ export default function Login() {
   const [error, setError] = useState('')
 
   const handleGoogleLogin = async () => {
+    haptic.light()
     setLoading(true)
     setError('')
     try {
       await signInWithGoogle()
+      haptic.success()
     } catch (err) {
+      haptic.error()
       setError('Error al iniciar con Google. Intentá de nuevo.')
       console.error(err)
     }
@@ -26,7 +30,11 @@ export default function Login() {
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault()
-    if (!email || !password) return
+    haptic.light()
+    if (!email || !password) {
+      haptic.error()
+      return
+    }
 
     setLoading(true)
     setError('')
@@ -36,7 +44,9 @@ export default function Login() {
       } else {
         await signInWithEmail(email, password)
       }
+      haptic.success()
     } catch (err) {
+      haptic.error()
       const errorMessages = {
         'auth/user-not-found': 'No existe una cuenta con ese email.',
         'auth/wrong-password': 'Contraseña incorrecta.',
@@ -160,7 +170,11 @@ export default function Login() {
         <div className="login-toggle">
           <span>{isSignUp ? '¿Ya tenés cuenta?' : '¿No tenés cuenta?'}</span>
           <button
-            onClick={() => { setIsSignUp(!isSignUp); setError('') }}
+            onClick={() => {
+              haptic.light()
+              setIsSignUp(!isSignUp)
+              setError('')
+            }}
             id="btn-toggle-auth"
           >
             {isSignUp ? 'Iniciar sesión' : 'Crear cuenta'}

@@ -1,8 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
 import { formatPrice, formatPercent } from '../../utils/formatters'
 import useAppStore from '../../store/useAppStore'
+import { deletePosition } from '../../services/firestore'
+import { usePortfolio } from '../../hooks/usePortfolio'
+import { haptic } from '../../utils/haptics'
 import './PositionCard.css'
 
 // Generate a simple sparkline path
@@ -30,6 +33,40 @@ function generateSparklinePath(isGain, width = 60, height = 28) {
 export default function PositionCard({ position }) {
   const navigate = useNavigate()
   const currency = useAppStore(s => s.currency)
+  const showToast = useAppStore(s => s.showToast)
+  const { refresh } = usePortfolio()
+
+  const [swipeOffset, setSwipeOffset] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const touchStartRef = useRef(null)
+
+  const handleTouchStart = (e) => {
+    touchStartRef.current = e.touches[0].clientX
+    setIsSwiping(true)
+  }
+
+  const handleTouchMove = (e) => {
+    if (!touchStartRef.current) return
+    const currentX = e.touches[0].clientX
+    const diff = currentX - touchStartRef.current
+    if (diff < 0) {
+      // Swiping left only
+      setSwipeOffset(Math.max(-100, diff))
+    } else {
+      setSwipeOffset(0)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setIsSwiping(false)
+    if (swipeOffset < -50) {
+      setSwipeOffset(-80) // snap to open
+      haptic.medium()
+    } else {
+      setSwipeOffset(0) // snap back
+    }
+    touchStartRef.current = null
+  }
 
   const {
     id, symbol, name,
@@ -40,13 +77,47 @@ export default function PositionCard({ position }) {
   const sparklinePath = useMemo(() => generateSparklinePath(isGain), [isGain])
 
   return (
-    <div
-      className="position-card"
-      onClick={() => navigate(`/stock/${id}`)}
-      id={`position-${symbol}`}
-      role="button"
-      tabIndex={0}
-    >
+    <div className="swipe-container">
+      <div className="swipe-action-bg">
+        <button 
+          className="swipe-action-btn"
+          onClick={async (e) => {
+            e.stopPropagation()
+            haptic.light()
+            if (window.confirm(`¿Estás seguro de que querés eliminar ${symbol}?`)) {
+              try {
+                await deletePosition(id)
+                haptic.medium()
+                showToast('Posición eliminada')
+                await refresh()
+              } catch (error) {
+                console.error(error)
+                showToast('Error al eliminar', 'error')
+                haptic.error()
+              }
+            } else {
+              setSwipeOffset(0)
+            }
+          }}
+        >
+          <Trash2 size={24} />
+        </button>
+      </div>
+
+      <div
+        className={`position-card ${isSwiping ? 'is-swiping' : ''}`}
+        style={{ transform: `translateX(${swipeOffset}px)` }}
+        onClick={() => {
+          if (swipeOffset === 0) navigate(`/stock/${id}`)
+          else setSwipeOffset(0)
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        id={`position-${symbol}`}
+        role="button"
+        tabIndex={0}
+      >
       {/* Avatar */}
       <div className="position-avatar">
         <span>{symbol?.slice(0, 1)}</span>
@@ -94,6 +165,7 @@ export default function PositionCard({ position }) {
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

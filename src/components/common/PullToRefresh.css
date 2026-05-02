@@ -1,0 +1,45 @@
+.pull-to-refresh-container {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+}
+
+.pull-indicator {
+  position: absolute;
+  top: -60px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.pull-spinner {
+  background: var(--color-surface-container-highest);
+  color: var(--color-primary);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0s ease; /* controlled by inline style */
+}
+
+.pull-spinner.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pull-content {
+  width: 100%;
+  min-height: 100dvh;
+  will-change: transform;
+}

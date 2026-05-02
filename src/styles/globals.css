@@ -26,6 +26,7 @@ body {
   background-color: var(--color-background);
   min-height: 100dvh;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   position: relative;
 }

@@ -215,11 +215,57 @@
   gap: var(--space-xs);
 }
 
-.portfolio-empty {
-  text-align: center;
-  padding: var(--space-xl);
-  color: var(--color-on-surface-variant);
-  font: var(--font-body-md);
+.portfolio-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
   background: var(--color-surface-container-lowest);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  margin-top: var(--space-md);
+}
+
+.empty-icon-container {
+  width: 64px;
+  height: 64px;
+  background: var(--color-surface-container-low);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+.empty-icon {
+  color: var(--color-primary);
+}
+
+.portfolio-empty-state h3 {
+  font: var(--font-title-lg);
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-xs);
+}
+
+.portfolio-empty-state p {
+  font: var(--font-body-md);
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-lg);
+  max-width: 280px;
+}
+
+.empty-btn {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font: var(--font-label-lg);
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  border: none;
+  transition: all var(--duration-fast);
+}
+
+.empty-btn:active {
+  transform: scale(0.96);
+  opacity: 0.9;
 }

@@ -138,6 +138,16 @@ export default function Search() {
         </div>
       )}
 
+      {!searching && results.length === 0 && query.length >= 2 && (
+        <div className="search-empty-state">
+           <div className="search-empty-icon">
+             <SearchIcon size={32} strokeWidth={1.5} />
+           </div>
+           <h3>Sin resultados</h3>
+           <p>No encontramos "{query}". Probá con otro término.</p>
+        </div>
+      )}
+
       {/* Default Content: Trending + Popular */}
       {showDefault && (
         <>

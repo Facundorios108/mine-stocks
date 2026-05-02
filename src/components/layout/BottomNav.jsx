@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { Home, Search, PlusCircle, Briefcase, User } from 'lucide-react'
+import { haptic } from '../../utils/haptics'
 import './BottomNav.css'
 
 const navItems = [
@@ -22,6 +23,7 @@ export default function BottomNav() {
           <NavLink
             key={path}
             to={path}
+            onClick={() => haptic.light()}
             className={`nav-item ${isActive ? 'active' : ''} ${isAction ? 'nav-action' : ''}`}
             id={`nav-${label.toLowerCase() || 'add'}`}
           >

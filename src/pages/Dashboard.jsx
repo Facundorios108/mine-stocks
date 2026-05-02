@@ -5,6 +5,7 @@ import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts'
 import { usePortfolio } from '../hooks/usePortfolio'
 import { usePerformanceChart } from '../hooks/usePerformanceChart'
 import PositionCard from '../components/portfolio/PositionCard'
+import PullToRefresh from '../components/common/PullToRefresh'
 import { formatCurrency, formatPercent, formatPnL } from '../utils/formatters'
 import useAppStore from '../store/useAppStore'
 import './Dashboard.css'
@@ -43,8 +44,9 @@ export default function Dashboard() {
   const firstName = user?.displayName?.split(' ')[0] || 'Inversor'
 
   return (
-    <div className="page dashboard">
-      {/* Header */}
+    <PullToRefresh onRefresh={refresh}>
+      <div className="page dashboard">
+        {/* Header */}
       <header className="dash-header">
         <div className="dash-header-left">
           <div className="dash-avatar">
@@ -196,6 +198,7 @@ export default function Dashboard() {
           <button onClick={refresh}>Reintentar</button>
         </div>
       )}
-    </div>
+      </div>
+    </PullToRefresh>
   )
 }

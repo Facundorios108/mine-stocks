@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { LogOut, User as UserIcon, Settings, Shield, Bell } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import useAppStore from '../store/useAppStore'
+import { haptic } from '../utils/haptics'
 import './Placeholder.css'
 
 export default function Profile() {
@@ -17,9 +18,11 @@ export default function Profile() {
   ]
 
   const handleLogout = async () => {
+    haptic.light()
     try {
       await signOut()
     } catch (error) {
+      haptic.error()
       console.error(error)
     }
   }
@@ -66,13 +69,17 @@ export default function Profile() {
         <div className="profile-option-group" style={{ marginBottom: '16px' }}>
           <button 
             className={`profile-option ${activeTab === 'Dólares' ? 'selected' : ''}`}
-            onClick={() => setActiveTab('Dólares')}
+            onClick={() => {
+              haptic.light()
+              setActiveTab('Dólares')
+            }}
           >
             Dólares
           </button>
           <button 
             className={`profile-option ${activeTab === 'Pesos' ? 'selected' : ''}`}
             onClick={() => {
+              haptic.light()
               setActiveTab('Pesos')
               setCurrency('ARS')
             }}
@@ -87,7 +94,10 @@ export default function Profile() {
               <button
                 key={type.id}
                 className={`profile-dollar-item ${currency === type.id ? 'selected' : ''}`}
-                onClick={() => setCurrency(type.id)}
+                onClick={() => {
+                  haptic.light()
+                  setCurrency(type.id)
+                }}
               >
                 <div>
                   <div className="profile-dollar-label">{type.name}</div>

@@ -7,6 +7,7 @@ import { usePerformanceChart } from '../hooks/usePerformanceChart'
 import { formatCurrency, formatPercent, formatPrice, formatPnL } from '../utils/formatters'
 import useAppStore from '../store/useAppStore'
 import { deletePosition } from '../services/firestore'
+import { haptic } from '../utils/haptics'
 import './StockDetail.css'
 
 const TIME_FILTERS = ['1D', '1W', '1M', '3M', '1Y', 'ALL']
@@ -46,13 +47,16 @@ export default function StockDetail() {
   } = position
 
   const handleDelete = async () => {
+    haptic.light()
     try {
       setIsDeleting(true)
       await deletePosition(id)
+      haptic.medium()
       await refresh()
       showToast('Posición eliminada')
       navigate('/')
     } catch (error) {
+      haptic.error()
       console.error(error)
       showToast('Error al eliminar', 'error')
       setIsDeleting(false)
@@ -178,7 +182,10 @@ export default function StockDetail() {
       <section className="detail-danger">
         <button 
           className="detail-delete-btn"
-          onClick={() => setShowDeleteModal(true)}
+          onClick={() => {
+            haptic.light()
+            setShowDeleteModal(true)
+          }}
         >
           <Trash2 size={18} />
           Eliminar Posición

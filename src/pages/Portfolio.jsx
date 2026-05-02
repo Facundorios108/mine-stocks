@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { Briefcase, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
 import { usePortfolio } from '../hooks/usePortfolio'
 import PositionCard from '../components/portfolio/PositionCard'
+import PullToRefresh from '../components/common/PullToRefresh'
 import { formatCurrency, formatPercent, formatPnL } from '../utils/formatters'
 import useAppStore from '../store/useAppStore'
 import './Portfolio.css'
@@ -13,12 +14,13 @@ const COLORS = ['#00b86b', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0']
 export default function Portfolio() {
   const navigate = useNavigate()
   const currency = useAppStore(s => s.currency)
-  const { getPortfolioValue, getEnrichedPositions, isLoading } = usePortfolio()
+  const { getPortfolioValue, getEnrichedPositions, isLoading, refresh } = usePortfolio()
 
   const portfolio = getPortfolioValue()
   const positions = getEnrichedPositions()
   const isGain = portfolio.totalPnL >= 0
 
+  // Calculate allocation data
   const donutData = useMemo(() => {
     if (positions.length === 0) return []
     // Sort by value and take top 4, group rest into "Otros"
@@ -32,18 +34,19 @@ export default function Portfolio() {
       data.push({ name: 'Otros', value: othersValue })
     }
     return data
-  }, [positions])
+  }, [positions, portfolio.totalValue])
 
   return (
-    <div className="page portfolio-page">
-      {/* Header */}
-      <header className="portfolio-header">
-        <h1 className="portfolio-title">Mi Portafolio</h1>
-      </header>
+    <PullToRefresh onRefresh={refresh}>
+      <div className="page portfolio-page">
+        {/* Header */}
+        <header className="portfolio-header">
+          <h1 className="portfolio-title">Mi Portafolio</h1>
+        </header>
 
-      {/* Main Metrics Card */}
-      <section className="portfolio-main-card">
-        <div className="portfolio-card-header">
+        {/* Main Metrics Card */}
+        <section className="portfolio-main-card">
+          <div className="portfolio-card-header">
           <Briefcase size={20} className="portfolio-card-icon" />
           <span>Valor Actual</span>
         </div>
@@ -148,8 +151,15 @@ export default function Portfolio() {
             ))}
           </div>
         ) : positions.length === 0 ? (
-          <div className="portfolio-empty">
-            <p>Aún no tienes posiciones.</p>
+          <div className="portfolio-empty-state">
+            <div className="empty-icon-container">
+              <Briefcase size={32} strokeWidth={1.5} className="empty-icon" />
+            </div>
+            <h3>Tu portafolio está vacío</h3>
+            <p>Aún no agregaste ningún activo. ¡Empezá a invertir hoy!</p>
+            <button className="empty-btn" onClick={() => navigate('/add')}>
+              Agregar Activos
+            </button>
           </div>
         ) : (
           <div className="portfolio-position-list">
@@ -159,6 +169,7 @@ export default function Portfolio() {
           </div>
         )}
       </section>
-    </div>
+      </div>
+    </PullToRefresh>
   )
 }
