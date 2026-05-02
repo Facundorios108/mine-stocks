@@ -9,7 +9,10 @@ export function useAuth() {
   useEffect(() => {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
-        // Load user preferences
+        // Set user immediately to unblock UI and allow navigation
+        setUser(firebaseUser)
+        
+        // Load user preferences in background
         try {
           const prefs = await getUserPreferences(firebaseUser.uid)
           if (prefs?.preferredCurrency) {
@@ -21,7 +24,6 @@ export function useAuth() {
         } catch (err) {
           console.warn('Failed to load user preferences:', err)
         }
-        setUser(firebaseUser)
       } else {
         setUser(null)
       }

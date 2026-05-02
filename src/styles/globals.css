@@ -236,3 +236,36 @@ ul, ol {
   background: var(--color-error);
   color: var(--color-on-error);
 }
+
+/* ── Splash Screen Animation ── */
+.splash-fade-out {
+  /* Fades out after 0.4s delay, taking 0.4s */
+  animation: splashBgFadeOut 0.4s ease-out 0.4s forwards;
+  pointer-events: none;
+}
+
+@keyframes splashBgFadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.splash-logo-animate-out {
+  /* Logo expands and fades over 0.5s */
+  animation: logoExpandOut 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
+
+@keyframes logoExpandOut {
+  0% { transform: scale(1); opacity: 1; }
+  40% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+.splash-text-animate-out {
+  /* Text fades out over 0.3s */
+  animation: textFadeOut 0.3s ease-out forwards;
+}
+
+@keyframes textFadeOut {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(10px); }
+}

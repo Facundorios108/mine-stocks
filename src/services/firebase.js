@@ -15,13 +15,7 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 
-// Enable offline persistence for Firestore
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn('Firestore persistence failed: Multiple tabs open')
-  } else if (err.code === 'unimplemented') {
-    console.warn('Firestore persistence not available in this browser')
-  }
-})
+// Removed enableIndexedDbPersistence as it can cause significant delays 
+// or hang indefinitely on mobile browsers (iOS Safari/Chrome) and during local dev.
 
 export default app
