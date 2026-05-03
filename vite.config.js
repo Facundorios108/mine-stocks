@@ -34,14 +34,20 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/finnhub\.io\/api/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'finnhub-api-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 },
-              networkTimeoutSeconds: 5
+              expiration: { maxEntries: 200, maxAgeSeconds: 120 },
+              networkTimeoutSeconds: 3, // Reduced to 3s to beat the 5s app-level timeout
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           },
           {
@@ -49,7 +55,10 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'dolar-api-cache',
-              expiration: { maxEntries: 20, maxAgeSeconds: 300 }
+              expiration: { maxEntries: 20, maxAgeSeconds: 300 },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           },
           {

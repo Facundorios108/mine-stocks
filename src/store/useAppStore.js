@@ -1,55 +1,76 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-const useAppStore = create((set, get) => ({
-  // Auth
-  user: null,
-  isAuthLoading: true,
-  setUser: (user) => set({ user, isAuthLoading: false }),
-  setAuthLoading: (loading) => set({ isAuthLoading: loading }),
+const useAppStore = create(
+  persist(
+    (set, get) => ({
+      // Auth (NOT persisted - handled by Firebase)
+      user: null,
+      isAuthLoading: true,
+      setUser: (user) => set({ user, isAuthLoading: false }),
+      setAuthLoading: (loading) => set({ isAuthLoading: loading }),
 
-  // Currency
-  currency: 'USD', // 'USD' | 'ARS'
-  dollarType: 'blue',
-  dollarRates: null,
-  toggleCurrency: () => set((state) => ({
-    currency: state.currency === 'USD' ? 'ARS' : 'USD'
-  })),
-  setCurrency: (currency) => set({ currency }),
-  setDollarType: (dollarType) => set({ dollarType }),
-  setDollarRates: (rates) => set({ dollarRates: rates }),
+      // Currency
+      currency: 'USD', // 'USD' | 'ARS'
+      dollarType: 'blue',
+      dollarRates: null,
+      toggleCurrency: () => set((state) => ({
+        currency: state.currency === 'USD' ? 'ARS' : 'USD'
+      })),
+      setCurrency: (currency) => set({ currency }),
+      setDollarType: (dollarType) => set({ dollarType }),
+      setDollarRates: (rates) => set({ dollarRates: rates }),
 
-  // Positions
-  positions: [],
-  setPositions: (positions) => set({ positions }),
-  addPositionToStore: (position) => set((state) => ({
-    positions: [position, ...state.positions]
-  })),
-  removePositionFromStore: (id) => set((state) => ({
-    positions: state.positions.filter(p => p.id !== id)
-  })),
-  updatePositionInStore: (id, updates) => set((state) => ({
-    positions: state.positions.map(p =>
-      p.id === id ? { ...p, ...updates } : p
-    )
-  })),
+      // Positions (PERSISTED → instant load on app open)
+      positions: [],
+      setPositions: (positions) => set({ positions }),
+      addPositionToStore: (position) => set((state) => ({
+        positions: [position, ...state.positions]
+      })),
+      removePositionFromStore: (id) => set((state) => ({
+        positions: state.positions.filter(p => p.id !== id)
+      })),
+      updatePositionInStore: (id, updates) => set((state) => ({
+        positions: state.positions.map(p =>
+          p.id === id ? { ...p, ...updates } : p
+        )
+      })),
 
-  // Quotes (real-time prices)
-  quotes: {},
-  setQuotes: (quotes) => set({ quotes }),
-  updateQuote: (symbol, quote) => set((state) => ({
-    quotes: { ...state.quotes, [symbol]: quote }
-  })),
+      // Quotes (PERSISTED → show last known prices instantly)
+      quotes: {},
+      setQuotes: (quotes) => set({ quotes }),
+      updateQuote: (symbol, quote) => set((state) => ({
+        quotes: { ...state.quotes, [symbol]: quote }
+      })),
 
-  // UI
-  isRefreshing: false,
-  setRefreshing: (isRefreshing) => set({ isRefreshing }),
+      // Cache timestamp
+      lastFetchedAt: null,
+      setLastFetchedAt: () => set({ lastFetchedAt: Date.now() }),
 
-  // Toast
-  toast: null,
-  showToast: (message, type = 'success') => {
-    set({ toast: { message, type } })
-    setTimeout(() => set({ toast: null }), 3000)
-  }
-}))
+      // UI
+      isRefreshing: false,
+      setRefreshing: (isRefreshing) => set({ isRefreshing }),
+
+      // Toast
+      toast: null,
+      showToast: (message, type = 'success') => {
+        set({ toast: { message, type } })
+        setTimeout(() => set({ toast: null }), 3000)
+      }
+    }),
+    {
+      name: 'mine-stocks-cache',
+      // Only persist these keys to localStorage (not auth, toast, etc.)
+      partialize: (state) => ({
+        positions: state.positions,
+        quotes: state.quotes,
+        currency: state.currency,
+        dollarType: state.dollarType,
+        dollarRates: state.dollarRates,
+        lastFetchedAt: state.lastFetchedAt
+      })
+    }
+  )
+)
 
 export default useAppStore

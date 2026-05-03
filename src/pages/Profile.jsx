@@ -3,6 +3,7 @@ import { LogOut, User as UserIcon, Settings, Shield, Bell } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import useAppStore from '../store/useAppStore'
 import { haptic } from '../utils/haptics'
+import PageTransition from '../components/common/PageTransition'
 import './Placeholder.css'
 
 export default function Profile() {
@@ -30,6 +31,7 @@ export default function Profile() {
   const firstName = user?.displayName?.split(' ')[0] || 'Inversor'
 
   return (
+    <PageTransition>
     <div className="page profile-page">
       {/* Hero */}
       <section className="profile-hero">
@@ -118,5 +120,6 @@ export default function Profile() {
         </button>
       </section>
     </div>
+    </PageTransition>
   )
 }

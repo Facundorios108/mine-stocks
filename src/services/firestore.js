@@ -1,7 +1,7 @@
 import {
   collection,
   doc,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   getDocs,
@@ -37,25 +37,37 @@ export async function getPosition(userId, positionId) {
 }
 
 export async function addPosition(userId, position) {
-  const docRef = await addDoc(positionsRef(userId), {
+  const newDocRef = doc(collection(db, 'users', userId, 'positions'))
+  
+  // Fire and forget, or await it. Since we want fast UI, we can just return the ID
+  // and let the promise resolve in the background, but returning the ID immediately.
+  // We'll await the setDoc but with a short timeout to not block UI if offline.
+  const dataToSave = {
     ...position,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
-  })
-  return docRef.id
+  }
+  
+  // We don't await this so the UI can proceed immediately.
+  // Firebase will queue this write and sync it when online.
+  setDoc(newDocRef, dataToSave).catch(err => console.error('Error syncing addPosition:', err))
+  
+  return newDocRef.id
 }
 
 export async function updatePosition(userId, positionId, updates) {
   const docRef = doc(db, 'users', userId, 'positions', positionId)
-  await updateDoc(docRef, {
+  // Fire and forget
+  updateDoc(docRef, {
     ...updates,
     updatedAt: serverTimestamp()
-  })
+  }).catch(err => console.error('Error syncing updatePosition:', err))
 }
 
 export async function deletePosition(userId, positionId) {
   const docRef = doc(db, 'users', userId, 'positions', positionId)
-  await deleteDoc(docRef)
+  // Fire and forget
+  deleteDoc(docRef).catch(err => console.error('Error syncing deletePosition:', err))
 }
 
 // ── User Preferences ──

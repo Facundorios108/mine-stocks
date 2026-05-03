@@ -8,6 +8,7 @@ import { formatCurrency, formatPercent, formatPrice, formatPnL } from '../utils/
 import useAppStore from '../store/useAppStore'
 import { deletePosition } from '../services/firestore'
 import { haptic } from '../utils/haptics'
+import PageTransition from '../components/common/PageTransition'
 import './StockDetail.css'
 
 const TIME_FILTERS = ['1D', '1W', '1M', '3M', '1Y', 'ALL']
@@ -46,13 +47,22 @@ export default function StockDetail() {
     totalValue, totalCost, pnlAmount, pnlPercent, isGain, notes
   } = position
 
+  const user = useAppStore(s => s.user)
+
   const handleDelete = async () => {
     haptic.light()
     try {
       setIsDeleting(true)
-      await deletePosition(id)
+      
+      // Fire and forget
+      deletePosition(user.uid, id)
+      
+      // Optimistic UI update
+      const currentPositions = useAppStore.getState().positions
+      useAppStore.getState().setPositions(currentPositions.filter(p => p.id !== id))
+      
       haptic.medium()
-      await refresh()
+      refresh()
       showToast('Posición eliminada')
       navigate('/')
     } catch (error) {
@@ -65,6 +75,7 @@ export default function StockDetail() {
   }
 
   return (
+    <PageTransition>
     <div className="page stock-detail">
       {/* Header */}
       <header className="detail-header">
@@ -121,6 +132,27 @@ export default function StockDetail() {
                 </linearGradient>
               </defs>
               <YAxis domain={['dataMin', 'dataMax']} hide />
+              <Tooltip 
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="dash-chart-tooltip" style={{
+                        background: '#1a1d24',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        color: '#fff',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      }}>
+                        {formatCurrency(payload[0].value, currency)}
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+                cursor={{ stroke: isGain ? '#00b86b' : '#ff5252', strokeWidth: 1, strokeDasharray: '4 4' }}
+              />
               <Area
                 type="monotone"
                 dataKey="pnl"
@@ -128,6 +160,7 @@ export default function StockDetail() {
                 strokeWidth={2}
                 fill="url(#detailGrad)"
                 dot={false}
+                activeDot={{ r: 4, strokeWidth: 0, fill: isGain ? '#00b86b' : '#ff5252' }}
                 animationDuration={800}
               />
             </AreaChart>
@@ -222,5 +255,6 @@ export default function StockDetail() {
         </div>
       )}
     </div>
+    </PageTransition>
   )
 }

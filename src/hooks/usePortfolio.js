@@ -15,15 +15,24 @@ export function usePortfolio() {
   const dollarRates = useAppStore(s => s.dollarRates)
   const currency = useAppStore(s => s.currency)
   const dollarType = useAppStore(s => s.dollarType)
+  const setLastFetchedAt = useAppStore(s => s.setLastFetchedAt)
   const queryClient = useQueryClient()
+
+  // Check if we have cached data from localStorage (via zustand persist)
+  const hasCachedPositions = positions.length > 0
+  const hasCachedQuotes = Object.keys(quotes).length > 0
 
   // Fetch positions from Firestore
   const positionsQuery = useQuery({
     queryKey: ['positions', user?.uid],
     queryFn: () => getPositions(user.uid),
     enabled: !!user?.uid,
-    staleTime: 30000,
-    onSuccess: (data) => setPositions(data)
+    staleTime: 60000, // 60s — don't refetch on every navigation
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+    networkMode: 'offlineFirst',
+    // If we have cached positions, use them as placeholder while fresh data loads
+    placeholderData: hasCachedPositions ? positions : undefined
   })
 
   // Extract unique symbols from positions
@@ -34,24 +43,32 @@ export function usePortfolio() {
     queryKey: ['quotes', symbols.join(',')],
     queryFn: () => getBatchQuotes(symbols),
     enabled: symbols.length > 0,
-    staleTime: 30000, // 30 second cache
-    refetchInterval: 60000, // Auto-refetch every 60s
-    onSuccess: (data) => setQuotes(data)
+    staleTime: 60000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 60000,
+    retry: false, // Do not retry Finnhub API if it fails, fallback to cache
+    networkMode: 'offlineFirst',
+    // Use cached quotes as placeholder
+    placeholderData: hasCachedQuotes ? quotes : undefined
   })
 
   // Fetch dollar rates
   const ratesQuery = useQuery({
     queryKey: ['dollarRates'],
     queryFn: getAllDollarRates,
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
-    onSuccess: (data) => setDollarRates(data)
+    retry: 1,
+    networkMode: 'offlineFirst',
+    placeholderData: dollarRates || undefined
   })
 
   // Update positions when Firestore data changes
   useEffect(() => {
     if (positionsQuery.data) {
       setPositions(positionsQuery.data)
+      setLastFetchedAt()
     }
   }, [positionsQuery.data])
 
@@ -153,9 +170,9 @@ export function usePortfolio() {
         currentPriceUsd: currentPrice,
         change,
         changePercent,
-        value: displayValue,
+        totalValue: displayValue,
         cost: displayCost,
-        pnl: displayPnl,
+        pnlAmount: displayPnl,
         pnlPercent,
         isGain: pnl >= 0,
         quoteLoaded: !!quote
@@ -163,11 +180,17 @@ export function usePortfolio() {
     })
   }, [positions, quotes, currency, dollarRates, dollarType])
 
+  // The key insight: if we have cached data, we are NOT loading
+  // We show cached data instantly and update silently in background
+  const isActuallyLoading = positionsQuery.isLoading && !hasCachedPositions
+  const quotesActuallyLoading = quotesQuery.isLoading && !hasCachedQuotes
+
   return {
     positions,
     quotes,
-    isLoading: positionsQuery.isLoading || quotesQuery.isLoading,
-    isRefreshing: quotesQuery.isFetching,
+    isLoading: isActuallyLoading,
+    quotesLoading: quotesActuallyLoading,
+    isRefreshing: quotesQuery.isFetching && !quotesQuery.isLoading,
     refresh,
     getPortfolioValue,
     getEnrichedPositions,

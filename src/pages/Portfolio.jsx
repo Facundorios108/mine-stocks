@@ -2,9 +2,11 @@ import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { Briefcase, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { usePortfolio } from '../hooks/usePortfolio'
 import PositionCard from '../components/portfolio/PositionCard'
 import PullToRefresh from '../components/common/PullToRefresh'
+import PageTransition, { staggerContainer, staggerItem } from '../components/common/PageTransition'
 import { formatCurrency, formatPercent, formatPnL } from '../utils/formatters'
 import useAppStore from '../store/useAppStore'
 import './Portfolio.css'
@@ -37,6 +39,7 @@ export default function Portfolio() {
   }, [positions, portfolio.totalValue])
 
   return (
+    <PageTransition>
     <PullToRefresh onRefresh={refresh}>
       <div className="page portfolio-page">
         {/* Header */}
@@ -113,8 +116,24 @@ export default function Portfolio() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    formatter={(value) => formatCurrency(value, currency)}
-                    contentStyle={{ borderRadius: 8, border: 'none', background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface)' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div style={{
+                            background: '#1a1d24',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                          }}>
+                            {payload[0].name}: {formatCurrency(payload[0].value, currency)}
+                          </div>
+                        )
+                      }
+                      return null
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -162,14 +181,22 @@ export default function Portfolio() {
             </button>
           </div>
         ) : (
-          <div className="portfolio-position-list">
+          <motion.div
+            className="portfolio-position-list"
+            variants={staggerContainer}
+            initial="initial"
+            animate="enter"
+          >
             {positions.map(pos => (
-              <PositionCard key={pos.id} position={pos} />
+              <motion.div key={pos.id} variants={staggerItem}>
+                <PositionCard position={pos} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </section>
       </div>
     </PullToRefresh>
+    </PageTransition>
   )
 }

@@ -41,21 +41,35 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
       const to = Date.now()
       const from = to - (config.days * 24 * 60 * 60 * 1000)
       
-      const results = {}
-      // We process sequentially or with a slight delay if there are many to respect rate limits
-      for (const symbol of symbols) {
-        try {
-          const data = await getCandles(symbol, config.res, from, to)
-          results[symbol] = data
-        } catch (error) {
-          console.error(`Error fetching candles for ${symbol}`, error)
-          results[symbol] = null
-        }
+      // Fetch ALL candles in parallel with a timeout per request
+      const fetchWithTimeout = (symbol) => {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 8000) // 8s max per symbol
+        
+        return getCandles(symbol, config.res, from, to)
+          .then(data => ({ symbol, data }))
+          .catch(error => {
+            console.warn(`Candle fetch failed/timeout for ${symbol}`, error.message)
+            return { symbol, data: null }
+          })
+          .finally(() => clearTimeout(timeoutId))
       }
+
+      const settled = await Promise.allSettled(symbols.map(fetchWithTimeout))
+      
+      const results = {}
+      settled.forEach(result => {
+        if (result.status === 'fulfilled' && result.value) {
+          results[result.value.symbol] = result.value.data
+        }
+      })
       return results
     },
     enabled: symbols.length > 0,
-    staleTime: 5 * 60 * 1000 // Cache for 5 mins
+    staleTime: 10 * 60 * 1000, // Cache 10 mins (avoid refetching on every navigation)
+    gcTime: 15 * 60 * 1000, // Keep in memory 15 mins
+    retry: false, // Don't retry Finnhub API infinitely
+    networkMode: 'offlineFirst'
   })
 
   // 4. Align data and calculate PnL

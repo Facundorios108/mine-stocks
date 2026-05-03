@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Bell, Search as SearchIcon, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
 import { searchAssets } from '../services/marketData'
 import useAppStore from '../store/useAppStore'
+import PageTransition from '../components/common/PageTransition'
 import './Search.css'
 
 const CATEGORIES = ['Todas', 'Tecnología', 'Finanzas', 'Salud', 'Energía', 'Crypto']
@@ -61,6 +62,7 @@ export default function Search() {
   }
 
   return (
+    <PageTransition>
     <div className="page search-page">
       {/* Header */}
       <header className="explore-header">
@@ -207,5 +209,6 @@ export default function Search() {
         </>
       )}
     </div>
+    </PageTransition>
   )
 }

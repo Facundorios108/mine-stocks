@@ -67,21 +67,28 @@ export async function getQuote(symbol) {
  */
 export async function getBatchQuotes(symbols) {
   const results = {}
-  const batchSize = 10
 
-  for (let i = 0; i < symbols.length; i += batchSize) {
-    const batch = symbols.slice(i, i + batchSize)
-    const promises = batch.map(async (symbol) => {
-      try {
-        const quote = await getQuote(symbol)
-        results[symbol] = quote
-      } catch (err) {
-        console.warn(`Failed to fetch quote for ${symbol}:`, err)
-        results[symbol] = null
-      }
-    })
-    await Promise.all(promises)
+  // Fetch all quotes in parallel with a 5s timeout each
+  const fetchQuote = async (symbol) => {
+    try {
+      const quote = await Promise.race([
+        getQuote(symbol),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000))
+      ])
+      return { symbol, quote }
+    } catch (err) {
+      console.warn(`Quote fetch failed for ${symbol}:`, err.message)
+      return { symbol, quote: null }
+    }
   }
+
+  const settled = await Promise.allSettled(symbols.map(fetchQuote))
+  
+  settled.forEach(result => {
+    if (result.status === 'fulfilled' && result.value) {
+      results[result.value.symbol] = result.value.quote
+    }
+  })
 
   return results
 }

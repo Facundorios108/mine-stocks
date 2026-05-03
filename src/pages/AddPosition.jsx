@@ -6,6 +6,7 @@ import { addPosition, updatePosition } from '../services/firestore'
 import { haptic } from '../utils/haptics'
 import { usePortfolio } from '../hooks/usePortfolio'
 import useAppStore from '../store/useAppStore'
+import PageTransition from '../components/common/PageTransition'
 import './AddPosition.css'
 
 export default function AddPosition() {
@@ -125,22 +126,37 @@ export default function AddPosition() {
       
       const saveAndRefresh = async () => {
         if (editId) {
-          await updatePosition(user.uid, editId, positionData)
+          // Fire and forget update
+          updatePosition(user.uid, editId, positionData)
+          
+          // Optimistic UI update
+          const currentPositions = useAppStore.getState().positions
+          const updatedPositions = currentPositions.map(p => 
+            p.id === editId ? { ...p, ...positionData } : p
+          )
+          useAppStore.getState().setPositions(updatedPositions)
+          
           showToast('Posición actualizada')
         } else {
-          await addPosition(user.uid, positionData)
+          // Fire and forget add
+          // addPosition returns a promise, but we can generate ID locally in firestore.js if we want
+          // Let's await just the ID generation. Since we modified addPosition to use setDoc,
+          // it returns the newDocRef.id instantly!
+          const newId = await addPosition(user.uid, positionData)
+          
+          // Optimistic UI update
+          const currentPositions = useAppStore.getState().positions
+          useAppStore.getState().setPositions([{ id: newId, ...positionData }, ...currentPositions])
+          
           showToast('Posición agregada con éxito', 'success')
         }
         haptic.success()
-        await refresh()
+        
+        // Let React Query sync in background
+        refresh()
       }
 
-      // 10 second timeout
-      await Promise.race([
-        saveAndRefresh(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 10000))
-      ])
-
+      await saveAndRefresh()
       navigate('/portfolio')
     } catch (error) {
       haptic.error()
@@ -158,6 +174,7 @@ export default function AddPosition() {
   const isFormValid = formData.symbol && formData.shares > 0 && formData.averageCost >= 0
 
   return (
+    <PageTransition>
     <div className="page add-position">
       <header className="add-header">
         <button className="add-back-btn" onClick={() => {
@@ -327,5 +344,6 @@ export default function AddPosition() {
         </form>
       )}
     </div>
+    </PageTransition>
   )
 }
