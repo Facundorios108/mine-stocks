@@ -12,13 +12,11 @@ const useAppStore = create(
 
       // Currency
       currency: 'USD', // 'USD' | 'ARS'
-      dollarType: 'blue',
       dollarRates: null,
       toggleCurrency: () => set((state) => ({
         currency: state.currency === 'USD' ? 'ARS' : 'USD'
       })),
       setCurrency: (currency) => set({ currency }),
-      setDollarType: (dollarType) => set({ dollarType }),
       setDollarRates: (rates) => set({ dollarRates: rates }),
 
       // Positions (PERSISTED → instant load on app open)
@@ -65,7 +63,6 @@ const useAppStore = create(
         positions: state.positions,
         quotes: state.quotes,
         currency: state.currency,
-        dollarType: state.dollarType,
         dollarRates: state.dollarRates,
         lastFetchedAt: state.lastFetchedAt
       })

@@ -43,14 +43,22 @@
   cursor: pointer;
   position: relative;
   z-index: 2;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255, 255, 255, 0.02);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
-              background var(--duration-fast) var(--ease-out);
+              background var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
   -webkit-tap-highlight-color: transparent;
   touch-action: pan-y; /* Allow vertical scroll but capture horizontal swipe */
 }
 
+[data-theme="dark"] .position-card {
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .position-card:active {
   background: var(--color-surface-container-low);
+  box-shadow: none;
 }
 
 .position-card.is-swiping {

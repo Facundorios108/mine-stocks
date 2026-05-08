@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { Briefcase, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
@@ -22,6 +22,8 @@ export default function Portfolio() {
   const positions = getEnrichedPositions()
   const isGain = portfolio.totalPnL >= 0
 
+  const [activeIndex, setActiveIndex] = useState(null)
+
   // Calculate allocation data
   const donutData = useMemo(() => {
     if (positions.length === 0) return []
@@ -37,6 +39,13 @@ export default function Portfolio() {
     }
     return data
   }, [positions, portfolio.totalValue])
+
+  const onPieEnter = (_, index) => {
+    setActiveIndex(index);
+  };
+  const onPieLeave = () => {
+    setActiveIndex(null);
+  };
 
   return (
     <PageTransition>
@@ -112,7 +121,19 @@ export default function Portfolio() {
                     stroke="none"
                   >
                     {donutData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        onMouseEnter={() => onPieEnter(null, index)}
+                        onMouseLeave={onPieLeave}
+                        style={{
+                          outline: 'none',
+                          filter: activeIndex === index ? `drop-shadow(0px 0px 8px ${COLORS[index % COLORS.length]}80)` : 'none',
+                          transform: activeIndex === index ? 'scale(1.05)' : 'scale(1)',
+                          transformOrigin: 'center',
+                          transition: 'all 0.3s ease'
+                        }}
+                      />
                     ))}
                   </Pie>
                   <Tooltip 
@@ -138,9 +159,29 @@ export default function Portfolio() {
                 </PieChart>
               </ResponsiveContainer>
               {/* Center Text */}
-              <div className="allocation-center">
-                <span>{positions.length}</span>
-                <small>Activos</small>
+              <div className="allocation-center" style={{ pointerEvents: 'none', zIndex: 10 }}>
+                {activeIndex !== null && donutData[activeIndex] ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    key="active-state"
+                  >
+                    <span style={{ fontSize: '1.2rem', color: COLORS[activeIndex % COLORS.length] }}>
+                      {formatPercent((donutData[activeIndex].value / portfolio.totalValue) * 100)}
+                    </span>
+                    <small>{donutData[activeIndex].name}</small>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    key="default-state"
+                  >
+                    <span>{positions.length}</span>
+                    <small>Activos</small>
+                  </motion.div>
+                )}
               </div>
             </div>
             

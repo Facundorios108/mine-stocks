@@ -1,6 +1,23 @@
 .dashboard {
   padding-top: calc(var(--safe-top) + var(--space-lg));
+  position: relative;
 }
+
+/* ── Ambient Background (Mesh Gradient) ── */
+.dash-ambient-bg {
+  position: absolute;
+  top: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150vw;
+  height: 450px;
+  background: radial-gradient(circle at 50% 50%, var(--color-primary) 0%, transparent 60%);
+  opacity: 0.08;
+  filter: blur(60px);
+  z-index: -1;
+  pointer-events: none;
+}
+
 
 /* ── Header ── */
 .dash-header {
@@ -75,9 +92,27 @@
 /* ── Balance Hero ── */
 .dash-hero {
   text-align: center;
-  margin-bottom: var(--space-lg);
-  padding: var(--space-lg) 0;
+  margin-bottom: var(--space-xl);
 }
+
+.dash-hero-card {
+  padding: var(--space-xl) var(--space-lg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
 
 .dash-hero-label {
   font: var(--font-label-md);

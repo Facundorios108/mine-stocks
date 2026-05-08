@@ -14,7 +14,6 @@ export function usePortfolio() {
   const setDollarRates = useAppStore(s => s.setDollarRates)
   const dollarRates = useAppStore(s => s.dollarRates)
   const currency = useAppStore(s => s.currency)
-  const dollarType = useAppStore(s => s.dollarType)
   const setLastFetchedAt = useAppStore(s => s.setLastFetchedAt)
   const queryClient = useQueryClient()
 
@@ -122,8 +121,9 @@ export function usePortfolio() {
     let exchangeRate = 1
 
     if (currency === 'ARS' && dollarRates) {
-      const rate = dollarRates[dollarType]
-      exchangeRate = rate?.sell || 1
+      // Cocos Capital uses "dólar oficial al valor de compra"
+      const rate = dollarRates['oficial']
+      exchangeRate = rate?.buy || rate?.sell || 1
       displayValue = totalValue * exchangeRate
       displayCost = totalCost * exchangeRate
       displayPnL = totalPnL * exchangeRate
@@ -137,7 +137,7 @@ export function usePortfolio() {
       exchangeRate,
       positionCount: positions.length
     }
-  }, [positions, quotes, currency, dollarRates, dollarType])
+  }, [positions, quotes, currency, dollarRates])
 
   // Get enriched position data (with current prices)
   const getEnrichedPositions = useCallback(() => {
@@ -157,7 +157,7 @@ export function usePortfolio() {
       let displayPnl = pnl
 
       if (currency === 'ARS' && dollarRates) {
-        const rate = dollarRates[dollarType]?.sell || 1
+        const rate = dollarRates['oficial']?.buy || dollarRates['oficial']?.sell || 1
         displayPrice = currentPrice * rate
         displayValue = value * rate
         displayCost = cost * rate
@@ -178,7 +178,7 @@ export function usePortfolio() {
         quoteLoaded: !!quote
       }
     })
-  }, [positions, quotes, currency, dollarRates, dollarType])
+  }, [positions, quotes, currency, dollarRates])
 
   // The key insight: if we have cached data, we are NOT loading
   // We show cached data instantly and update silently in background

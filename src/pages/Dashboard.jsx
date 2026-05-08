@@ -61,6 +61,7 @@ export default function Dashboard() {
     <PageTransition>
     <PullToRefresh onRefresh={refresh}>
       <div className="page dashboard">
+        <div className="dash-ambient-bg" />
         {/* Header */}
       <motion.header 
         className="dash-header"
@@ -78,7 +79,7 @@ export default function Dashboard() {
           </div>
           <span className="dash-greeting">{greeting()}, {firstName}</span>
         </div>
-        <button className="dash-notification-btn" id="btn-notifications">
+        <button className="dash-notification-btn glass" id="btn-notifications">
           <Bell size={20} strokeWidth={1.8} />
           <div className="dash-notif-dot" />
         </button>
@@ -86,46 +87,48 @@ export default function Dashboard() {
 
       {/* Balance Hero */}
       <section className="dash-hero" id="portfolio-summary">
-        <div className="dash-hero-label">TOTAL BALANCE</div>
-        <div className="dash-hero-value">
-          <AnimatePresence mode="wait">
-            {!balanceReady ? (
-              <motion.div
-                key="shimmer-balance"
-                className="shimmer"
-                style={{ width: 220, height: 48, borderRadius: 12 }}
-                {...fadeIn}
-              />
-            ) : (
-              <motion.div key="balance-value" {...fadeIn}>
-                <AnimatedCounter
-                  value={portfolio.totalValue}
-                  formatter={balanceFormatter}
-                  duration={1}
+        <div className="dash-hero-card glass">
+          <div className="dash-hero-label">TOTAL BALANCE</div>
+          <div className="dash-hero-value">
+            <AnimatePresence mode="wait">
+              {!balanceReady ? (
+                <motion.div
+                  key="shimmer-balance"
+                  className="shimmer"
+                  style={{ width: 220, height: 48, borderRadius: 12, margin: '0 auto' }}
+                  {...fadeIn}
                 />
-                <span className="dash-hero-currency"> {currency}</span>
+              ) : (
+                <motion.div key="balance-value" {...fadeIn}>
+                  <AnimatedCounter
+                    value={portfolio.totalValue}
+                    formatter={balanceFormatter}
+                    duration={1}
+                  />
+                  <span className="dash-hero-currency"> {currency}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          <AnimatePresence>
+            {balanceReady && portfolio.positionCount > 0 && (
+              <motion.div 
+                className={`dash-hero-change ${isGain ? 'gain' : 'loss'}`}
+                {...fadeIn}
+              >
+                {isGain ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                <span>{formatPercent(portfolio.totalPnLPercent)}</span>
+                <span className="dash-hero-change-amount">
+                  (<AnimatedCounter
+                    value={portfolio.totalPnL}
+                    formatter={pnlFormatter}
+                    duration={0.8}
+                  />) este mes
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
-        <AnimatePresence>
-          {balanceReady && portfolio.positionCount > 0 && (
-            <motion.div 
-              className={`dash-hero-change ${isGain ? 'gain' : 'loss'}`}
-              {...fadeIn}
-            >
-              {isGain ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-              <span>{formatPercent(portfolio.totalPnLPercent)}</span>
-              <span className="dash-hero-change-amount">
-                (<AnimatedCounter
-                  value={portfolio.totalPnL}
-                  formatter={pnlFormatter}
-                  duration={0.8}
-                />) this month
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </section>
 
       {/* Time Filters */}
@@ -161,9 +164,13 @@ export default function Dashboard() {
                 <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={isGain ? '#00b86b' : '#ff5252'} stopOpacity={0.3} />
-                      <stop offset="100%" stopColor={isGain ? '#00b86b' : '#ff5252'} stopOpacity={0.02} />
+                      <stop offset="0%" stopColor={isGain ? '#4ce08e' : '#ff7671'} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={isGain ? '#4ce08e' : '#ff7671'} stopOpacity={0.02} />
                     </linearGradient>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
                   </defs>
                   <YAxis domain={['dataMin', 'dataMax']} hide />
                   <Tooltip 
@@ -171,13 +178,14 @@ export default function Dashboard() {
                       if (active && payload && payload.length) {
                         return (
                           <div className="dash-chart-tooltip" style={{
-                            background: '#1a1d24',
+                            background: 'var(--color-surface-container-high)',
                             padding: '8px 12px',
                             borderRadius: '8px',
-                            color: '#fff',
+                            color: 'var(--color-on-surface)',
                             fontSize: '14px',
-                            fontWeight: '500',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                            fontWeight: '600',
+                            boxShadow: 'var(--shadow-md)',
+                            border: '1px solid var(--glass-border)'
                           }}>
                             {balanceFormatter(payload[0].value)}
                           </div>
@@ -185,16 +193,17 @@ export default function Dashboard() {
                       }
                       return null
                     }}
-                    cursor={{ stroke: isGain ? '#00b86b' : '#ff5252', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    cursor={{ stroke: isGain ? '#4ce08e' : '#ff7671', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
                   />
                   <Area
                     type="monotone"
                     dataKey="v"
-                    stroke={isGain ? '#00b86b' : '#ff5252'}
-                    strokeWidth={2}
+                    stroke={isGain ? '#4ce08e' : '#ff7671'}
+                    strokeWidth={2.5}
                     fill="url(#chartGrad)"
+                    filter="url(#glow)"
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: isGain ? '#00b86b' : '#ff5252' }}
+                    activeDot={{ r: 5, strokeWidth: 2, stroke: '#131719', fill: isGain ? '#4ce08e' : '#ff7671' }}
                     animationDuration={800}
                   />
                 </AreaChart>

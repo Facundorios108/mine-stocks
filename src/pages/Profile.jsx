@@ -1,22 +1,14 @@
 import { useState } from 'react'
-import { LogOut, User as UserIcon, Settings, Shield, Bell } from 'lucide-react'
+import { LogOut, User as UserIcon, Settings, Shield, Bell, DollarSign, ChevronRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import useAppStore from '../store/useAppStore'
 import { haptic } from '../utils/haptics'
 import PageTransition from '../components/common/PageTransition'
-import './Placeholder.css'
+import './Profile.css'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
-  const { currency, setCurrency } = useAppStore()
-  const [activeTab, setActiveTab] = useState('Dólares') // Dólares, Opciones
-
-  const DOLLAR_TYPES = [
-    { id: 'USD', name: 'Dólar Oficial', desc: 'Cotización BNA' },
-    { id: 'Blue', name: 'Dólar Blue', desc: 'Cotización Informal' },
-    { id: 'MEP', name: 'Dólar MEP', desc: 'Mercado Electrónico' },
-    { id: 'CCL', name: 'Dólar CCL', desc: 'Contado con Liqui' }
-  ]
+  const { currency, toggleCurrency } = useAppStore()
 
   const handleLogout = async () => {
     haptic.light()
@@ -26,6 +18,11 @@ export default function Profile() {
       haptic.error()
       console.error(error)
     }
+  }
+
+  const handleToggleCurrency = () => {
+    haptic.light()
+    toggleCurrency()
   }
 
   const firstName = user?.displayName?.split(' ')[0] || 'Inversor'
@@ -42,80 +39,73 @@ export default function Profile() {
             <UserIcon size={32} />
           )}
         </div>
-        <h1 className="profile-name">{user?.displayName || 'Mi Perfil'}</h1>
-        <div className="profile-email">{user?.email}</div>
+        <div className="profile-info">
+          <h1 className="profile-name">{user?.displayName || 'Mi Perfil'}</h1>
+          <div className="profile-email">{user?.email}</div>
+        </div>
+      </section>
+
+      {/* Currency Toggle */}
+      <section className="profile-section">
+        <h2 className="profile-section-title">Visualización del Portafolio</h2>
+        <div className="profile-option-group">
+          <div className="profile-option currency-toggle-row">
+            <div className="profile-option-left">
+              <div className="icon-wrapper glass">
+                <DollarSign size={18} />
+              </div>
+              <span>Moneda Base</span>
+            </div>
+            
+            <div className="currency-slider" onClick={handleToggleCurrency}>
+              <div className={`currency-slider-track ${currency === 'ARS' ? 'is-ars' : ''}`}>
+                <span className="currency-label usd">USD</span>
+                <span className="currency-label ars">ARS</span>
+                <div className="currency-slider-thumb" />
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Settings Options */}
       <section className="profile-section">
-        <h2 className="profile-section-title">Ajustes Generales</h2>
+        <h2 className="profile-section-title">Ajustes</h2>
         <div className="profile-option-group">
           <button className="profile-option">
-            <Bell size={20} />
-            <span>Notificaciones</span>
+            <div className="profile-option-left">
+              <div className="icon-wrapper glass">
+                <Bell size={18} />
+              </div>
+              <span>Notificaciones</span>
+            </div>
+            <ChevronRight size={16} className="text-muted" />
           </button>
           <button className="profile-option">
-            <Shield size={20} />
-            <span>Seguridad</span>
+            <div className="profile-option-left">
+              <div className="icon-wrapper glass">
+                <Shield size={18} />
+              </div>
+              <span>Seguridad</span>
+            </div>
+            <ChevronRight size={16} className="text-muted" />
           </button>
           <button className="profile-option">
-            <Settings size={20} />
-            <span>Preferencias</span>
+            <div className="profile-option-left">
+              <div className="icon-wrapper glass">
+                <Settings size={18} />
+              </div>
+              <span>Preferencias</span>
+            </div>
+            <ChevronRight size={16} className="text-muted" />
           </button>
         </div>
-      </section>
-
-      {/* Currency Preferences */}
-      <section className="profile-section">
-        <h2 className="profile-section-title">Moneda Base</h2>
-        <div className="profile-option-group" style={{ marginBottom: '16px' }}>
-          <button 
-            className={`profile-option ${activeTab === 'Dólares' ? 'selected' : ''}`}
-            onClick={() => {
-              haptic.light()
-              setActiveTab('Dólares')
-            }}
-          >
-            Dólares
-          </button>
-          <button 
-            className={`profile-option ${activeTab === 'Pesos' ? 'selected' : ''}`}
-            onClick={() => {
-              haptic.light()
-              setActiveTab('Pesos')
-              setCurrency('ARS')
-            }}
-          >
-            Pesos (ARS)
-          </button>
-        </div>
-
-        {activeTab === 'Dólares' && (
-          <div className="profile-dollar-list">
-            {DOLLAR_TYPES.map(type => (
-              <button
-                key={type.id}
-                className={`profile-dollar-item ${currency === type.id ? 'selected' : ''}`}
-                onClick={() => {
-                  haptic.light()
-                  setCurrency(type.id)
-                }}
-              >
-                <div>
-                  <div className="profile-dollar-label">{type.name}</div>
-                  <div className="profile-dollar-desc">{type.desc}</div>
-                </div>
-                {currency === type.id && <div className="profile-dollar-check">✓</div>}
-              </button>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* Danger Zone */}
-      <section className="profile-section" style={{ marginTop: '32px' }}>
+      <section className="profile-section logout-section">
         <button className="profile-logout" onClick={handleLogout}>
-          <LogOut size={20} />
+          <LogOut size={18} />
           <span>Cerrar Sesión</span>
         </button>
       </section>
