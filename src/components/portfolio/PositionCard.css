@@ -3,34 +3,45 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: var(--space-sm);
-  background: var(--color-error); /* red background underneath */
+  background: var(--color-surface-container-lowest);
+  box-shadow: var(--shadow-sm);
 }
 
 .swipe-action-bg {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 100px;
-  background: var(--color-error);
+  inset: 0;
+  background: var(--color-error-container);
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
-  color: var(--color-on-error);
-  z-index: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  color: var(--color-on-error-container);
+}
+
+.swipe-action-content {
+  display: none; /* Hide the static background text to avoid overlap issues */
 }
 
 .swipe-action-btn {
-  background: none;
+  width: 80px;
+  height: 100%;
   border: none;
-  color: inherit;
-  padding: var(--space-sm) var(--space-md);
+  background: var(--color-error);
+  color: white;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  height: 100%;
-  width: 100%;
+  gap: 4px;
+  z-index: 1;
+}
+
+.swipe-action-btn span {
+  font: var(--font-label-sm);
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .position-card {
@@ -102,6 +113,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100px;
+}
+
+.position-invested {
+  font: var(--font-label-sm);
+  color: var(--color-outline);
+  margin-top: 1px;
 }
 
 /* Sparkline */

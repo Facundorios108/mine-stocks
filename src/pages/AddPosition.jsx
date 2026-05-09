@@ -12,8 +12,9 @@ import './AddPosition.css'
 export default function AddPosition() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { getEnrichedPositions, refresh } = usePortfolio()
+  const { getEnrichedPositions, refresh, dollarRates } = usePortfolio()
   const user = useAppStore(s => s.user)
+  const currency = useAppStore(s => s.currency)
   const showToast = useAppStore(s => s.showToast)
 
   // Params
@@ -109,28 +110,51 @@ export default function AddPosition() {
     if (!user) return
     haptic.light()
 
+    const currency = useAppStore.getState().currency
+    const dollarRates = useAppStore.getState().dollarRates
+    let exchangeRate = 1
+
+    if (currency === 'ARS' && dollarRates) {
+      const rate = dollarRates['oficial']
+      exchangeRate = rate?.buy || rate?.sell || 1
+    }
+
+    const normalizedCost = parseFloat(formData.averageCost) / exchangeRate
+    const normalizedCommission = (formData.commission ? parseFloat(formData.commission) : 0) / exchangeRate
+
     const positionData = {
       userId: user.uid,
       symbol: formData.symbol.toUpperCase(),
       name: formData.name,
       assetType: formData.assetType,
       shares: parseFloat(formData.shares),
-      averageCost: parseFloat(formData.averageCost),
-      commission: formData.commission ? parseFloat(formData.commission) : 0,
+      averageCost: normalizedCost,
+      commission: normalizedCommission,
       date: formData.date,
       notes: formData.notes
+    }
+
+    const newTransaction = {
+      id: Date.now().toString(),
+      type: 'buy',
+      shares: positionData.shares,
+      price: normalizedCost,
+      date: positionData.date,
+      commission: normalizedCommission,
+      notes: positionData.notes
     }
 
     try {
       setIsSubmitting(true)
       
       const saveAndRefresh = async () => {
+        const currentPositions = useAppStore.getState().positions
+        
         if (editId) {
           // Fire and forget update
           updatePosition(user.uid, editId, positionData)
           
           // Optimistic UI update
-          const currentPositions = useAppStore.getState().positions
           const updatedPositions = currentPositions.map(p => 
             p.id === editId ? { ...p, ...positionData } : p
           )
@@ -138,17 +162,50 @@ export default function AddPosition() {
           
           showToast('Posición actualizada')
         } else {
-          // Fire and forget add
-          // addPosition returns a promise, but we can generate ID locally in firestore.js if we want
-          // Let's await just the ID generation. Since we modified addPosition to use setDoc,
-          // it returns the newDocRef.id instantly!
-          const newId = await addPosition(user.uid, positionData)
+          // Check if position already exists
+          const existing = currentPositions.find(p => p.symbol === positionData.symbol)
           
-          // Optimistic UI update
-          const currentPositions = useAppStore.getState().positions
-          useAppStore.getState().setPositions([{ id: newId, ...positionData }, ...currentPositions])
-          
-          showToast('Posición agregada con éxito', 'success')
+          if (existing) {
+            // Merge logic
+            const newShares = existing.shares + positionData.shares
+            const newAvgCost = ((existing.shares * existing.averageCost) + (positionData.shares * positionData.averageCost)) / newShares
+            
+            const transactions = existing.transactions || [{
+              id: 'initial',
+              type: 'buy',
+              shares: existing.shares,
+              price: existing.averageCost,
+              date: existing.date || new Date().toISOString().split('T')[0],
+              commission: existing.commission || 0,
+              notes: existing.notes || ''
+            }]
+            
+            transactions.push(newTransaction)
+            
+            const mergedData = {
+              shares: newShares,
+              averageCost: newAvgCost,
+              transactions: transactions
+            }
+            
+            updatePosition(user.uid, existing.id, mergedData)
+            
+            const updatedPositions = currentPositions.map(p => 
+              p.id === existing.id ? { ...p, ...mergedData } : p
+            )
+            useAppStore.getState().setPositions(updatedPositions)
+            
+            showToast('Compra agregada a la posición existente', 'success')
+          } else {
+            // Create new
+            positionData.transactions = [newTransaction]
+            const newId = await addPosition(user.uid, positionData)
+            
+            // Optimistic UI update
+            useAppStore.getState().setPositions([{ id: newId, ...positionData }, ...currentPositions])
+            
+            showToast('Posición agregada con éxito', 'success')
+          }
         }
         haptic.success()
         
@@ -206,17 +263,23 @@ export default function AddPosition() {
             </div>
           ) : results.length > 0 ? (
             <div className="add-results">
-              {results.map(r => (
-                <button key={r.symbol} className="add-result-item" onClick={() => selectAsset(r)}>
-                  <div className="add-result-avatar">
-                    <span>{r.symbol.slice(0, 2)}</span>
-                  </div>
-                  <div className="add-result-info">
-                    <div className="add-result-symbol">{r.symbol}</div>
-                    <div className="add-result-name">{r.name}</div>
-                  </div>
-                </button>
-              ))}
+              {results.map(r => {
+                const inPortfolio = getEnrichedPositions().some(p => p.symbol === r.symbol && p.shares > 0);
+                return (
+                  <button key={r.symbol} className="add-result-item" onClick={() => selectAsset(r)}>
+                    <div className="add-result-avatar">
+                      <span>{r.symbol.slice(0, 2)}</span>
+                    </div>
+                    <div className="add-result-info">
+                      <div className="add-result-symbol">
+                        {r.symbol}
+                        {inPortfolio && <span className="add-in-portfolio-badge">En Cartera</span>}
+                      </div>
+                      <div className="add-result-name">{r.name}</div>
+                    </div>
+                  </button>
+                );
+              })}
               <button className="add-manual-btn" onClick={handleManualEntry}>
                 Ingresar "{query.toUpperCase()}" manualmente
               </button>
@@ -249,6 +312,41 @@ export default function AddPosition() {
               </button>
             )}
           </div>
+
+          {/* Existing Position Warning/Info */}
+          {!editId && (() => {
+            const currentPositions = useAppStore.getState().positions
+            const existing = currentPositions.find(p => p.symbol === formData.symbol.toUpperCase())
+            if (!existing) return null
+            
+            let exchangeRate = 1
+            if (currency === 'ARS' && dollarRates) {
+              const rate = dollarRates['oficial']
+              exchangeRate = rate?.buy || rate?.sell || 1
+            }
+
+            const displayAvgCost = existing.averageCost * exchangeRate
+
+            return (
+              <div className="existing-position-info">
+                <div className="info-header">
+                  <Check size={16} className="info-icon" />
+                  <span>Ya tenés esta posición ({existing.shares > 0 ? 'Abierta' : 'Cerrada'})</span>
+                </div>
+                <div className="info-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Shares actuales</span>
+                    <span className="detail-value">{existing.shares}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Costo promedio ({currency})</span>
+                    <span className="detail-value">{displayAvgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+                <p className="info-footer">La nueva compra se unificará con la existente.</p>
+              </div>
+            )
+          })()}
 
           {/* Type Selection */}
           <div className="add-form-group">
@@ -283,7 +381,7 @@ export default function AddPosition() {
               </div>
             </div>
             <div className="add-form-group">
-              <label className="add-form-label">Precio Promedio</label>
+              <label className="add-form-label">Precio de Compra ({currency})</label>
               <div className="add-form-field">
                 <input
                   type="number"
@@ -299,7 +397,7 @@ export default function AddPosition() {
 
           <div className="add-form-row">
             <div className="add-form-group">
-              <label className="add-form-label">Comisión (Opcional)</label>
+              <label className="add-form-label">Comisión ({currency}) - Opcional</label>
               <div className="add-form-field">
                 <input
                   type="number"

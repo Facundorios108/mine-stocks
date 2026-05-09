@@ -16,6 +16,7 @@ const FILTER_MAP = {
 
 export function usePerformanceChart(positionId = null, timeFilter = '1M') {
   const { getEnrichedPositions, dollarRates } = usePortfolio()
+  const cashBalance = useAppStore(s => s.cashBalance)
   const currency = useAppStore(s => s.currency)
   const dollarType = useAppStore(s => s.dollarType)
 
@@ -86,29 +87,52 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
 
     const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b)
     
+    // Inject current timestamp to ensure we always have the latest value,
+    // especially for newly added positions or when market data is delayed.
+    const nowUnix = Math.floor(Date.now() / 1000)
+    if (sortedTimestamps.length === 0 || sortedTimestamps[sortedTimestamps.length - 1] < nowUnix - 86400) {
+      sortedTimestamps.push(nowUnix)
+    }
+    
     const exchangeRate = currency === 'ARS' && dollarRates 
       ? (dollarRates[dollarType]?.sell || 1) 
       : 1
 
     const finalData = sortedTimestamps.map(t => {
-      let totalValue = 0
-      let totalCost = 0
-      let hasDataForTimestamp = false
+      let totalValue = positionId ? 0 : (cashBalance * exchangeRate)
+      let totalCost = positionId ? 0 : (cashBalance * exchangeRate)
+      let hasAnyShares = false
 
       positions.forEach(pos => {
-        // Did we own this at time t?
-        // Note: pos.date is expected to be 'YYYY-MM-DD'
-        const buyDateMs = pos.date ? new Date(pos.date).getTime() : 0
-        const buyDateUnix = Math.floor(buyDateMs / 1000)
+        // Reconstruct share count at time t from transactions
+        const txs = pos.transactions || []
         
-        // Include if purchased before or on this timestamp
-        // (adding a small buffer because of timezone differences)
-        if (t >= (buyDateUnix - 86400)) {
+        // If no transactions, fallback to the initial position date/shares
+        let sharesAtT = 0
+        if (txs.length === 0) {
+          const buyDateMs = pos.date ? new Date(pos.date).getTime() : 0
+          if (t >= Math.floor(buyDateMs / 1000) - 86400) {
+            sharesAtT = pos.shares
+          }
+        } else {
+          // Calculate cumulative shares from transactions up to time t
+          sharesAtT = txs
+            .filter(tx => {
+              const txDate = new Date(tx.date).getTime()
+              return Math.floor(txDate / 1000) <= t
+            })
+            .reduce((acc, tx) => {
+              return acc + (tx.type === 'buy' ? Number(tx.shares) : -Number(tx.shares))
+            }, 0)
+        }
+
+        if (sharesAtT > 0) {
+          hasAnyShares = true
           const symbolData = candlesBySymbol[pos.symbol]
-          let price = pos.currentPriceUsd || 0
+          let price = pos.currentPriceUsd || pos.averageCost || 0
           
           if (symbolData && symbolData.s === 'ok' && symbolData.t) {
-            // Find closest previous price
+            // Find closest previous price in candles
             let found = false
             for (let i = symbolData.t.length - 1; i >= 0; i--) {
               if (symbolData.t[i] <= t) {
@@ -117,11 +141,10 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
                 break
               }
             }
-            if (found) hasDataForTimestamp = true
           }
 
-          const value = pos.shares * price * exchangeRate
-          const cost = pos.shares * pos.averageCost * exchangeRate
+          const value = sharesAtT * price * exchangeRate
+          const cost = sharesAtT * pos.averageCost * exchangeRate
           
           totalValue += value
           totalCost += cost
@@ -129,15 +152,49 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
       })
 
       // Skip timestamps where we owned nothing
-      if (totalCost === 0) return null
+      if (!hasAnyShares) return null
 
       return {
         t,
         date: new Date(t * 1000).toLocaleDateString(),
-        v: totalValue, // total portfolio value
-        pnl: totalValue - totalCost // absolute PnL
+        v: totalValue,
+        pnl: totalValue - totalCost
       }
     }).filter(Boolean)
+
+    // Ensure we have at least 2 points for the chart to render properly.
+    // If only 1 point (today), add a previous point 24h ago with same value.
+    if (finalData.length === 1) {
+      const firstPoint = finalData[0]
+      const prevTime = firstPoint.t - 86400
+      finalData.unshift({
+        ...firstPoint,
+        t: prevTime,
+        date: new Date(prevTime * 1000).toLocaleDateString()
+      })
+    }
+
+    // Quick Fix: If chart is still empty but we have positions, 
+    // add a dummy point with current value to avoid "broken" feel.
+    if (finalData.length === 0 && positions.length > 0) {
+      const now = Math.floor(Date.now() / 1000)
+      const currentStats = positions.reduce((acc, p) => {
+        const val = p.shares * (p.currentPriceUsd || p.averageCost || 0) * exchangeRate
+        const cst = p.shares * p.averageCost * exchangeRate
+        return { v: acc.v + val, c: acc.c + cst }
+      }, { v: positionId ? 0 : (cashBalance * exchangeRate), c: positionId ? 0 : (cashBalance * exchangeRate) })
+
+      if (currentStats.v > 0 || currentStats.c > 0) {
+        const point = {
+          t: now,
+          date: new Date(now * 1000).toLocaleDateString(),
+          v: currentStats.v,
+          pnl: currentStats.v - currentStats.c
+        }
+        // Add twice to ensure it renders as a line
+        finalData.push({ ...point, t: now - 86400 }, point)
+      }
+    }
 
     return finalData
   }, [candlesBySymbol, positions, currency, dollarRates, dollarType])

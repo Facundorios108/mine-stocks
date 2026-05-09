@@ -136,26 +136,113 @@
   font-weight: 400;
 }
 
-.dash-hero-change {
-  display: inline-flex;
+.dash-hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.dash-hero-performance {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.dash-performance-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dash-performance-label {
+  font: var(--font-label-sm);
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.dash-performance-value {
+  display: flex;
   align-items: center;
   gap: 4px;
-  font: var(--font-label-lg);
-  margin-top: var(--space-2xs);
+  font: var(--font-title-md);
+  font-weight: 600;
 }
 
-.dash-hero-change.gain {
-  color: var(--color-gain);
-}
-
-.dash-hero-change.loss {
-  color: var(--color-loss);
-}
-
-.dash-hero-change-amount {
-  font: var(--font-body-sm);
+.dash-performance-value small {
+  font: var(--font-label-md);
   opacity: 0.8;
+  margin-left: 2px;
 }
+
+.dash-performance-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--glass-border);
+}
+
+.dash-performance-item.gain { color: var(--color-gain); }
+.dash-performance-item.loss { color: var(--color-loss); }
+
+.dash-hero-breakdown {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--glass-border);
+  text-align: left;
+}
+
+.dash-hero-breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-hero-breakdown-label {
+  font: var(--font-label-sm);
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dash-hero-breakdown-value {
+  font: var(--font-title-md);
+  color: var(--color-on-surface);
+}
+
+.dash-hero-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.dash-btn-cash {
+  flex: 1;
+  padding: var(--space-sm);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  font: var(--font-label-lg);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all var(--duration-fast);
+}
+
+.dash-btn-cash:active {
+  background: var(--color-surface-container-highest);
+  transform: scale(0.98);
+}
+
 
 /* ── Time Filters ── */
 .dash-time-filters {

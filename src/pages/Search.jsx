@@ -1,27 +1,47 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, Search as SearchIcon, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
-import { searchAssets } from '../services/marketData'
+import { searchAssets, getBatchQuotes } from '../services/marketData'
+import { motion, AnimatePresence } from 'framer-motion'
 import useAppStore from '../store/useAppStore'
+import { usePortfolio } from '../hooks/usePortfolio'
 import PageTransition from '../components/common/PageTransition'
 import './Search.css'
 
-const CATEGORIES = ['Todas', 'Tecnología', 'Finanzas', 'Salud', 'Energía', 'Crypto']
+const CATEGORIES = ['Todas', 'Tecnología', 'Finanzas', 'Salud', 'Energía']
 
-// Mock trending stocks for default view
-const TRENDING = [
-  { symbol: 'NVDA', name: 'NVIDIA Corp', price: 875.42, change: +3.21, isGain: true },
-  { symbol: 'META', name: 'Meta Platforms', price: 498.15, change: +1.87, isGain: true },
-  { symbol: 'TSLA', name: 'Tesla Inc', price: 178.30, change: -2.45, isGain: false },
-]
+const CAT_SYMBOLS = {
+  'Todas': ['AAPL', 'MSFT', 'NVDA', 'META', 'TSLA', 'AMZN', 'GOOGL', 'NFLX', 'BRK.B', 'UNH'],
+  'Tecnología': ['AMD', 'INTC', 'CRM', 'CSCO', 'ADBE', 'ORCL', 'PYPL', 'SHOP', 'SNOW', 'TWLO'],
+  'Finanzas': ['JPM', 'V', 'MA', 'BAC', 'GS', 'MS', 'WFC', 'BLK', 'AXP', 'PYPL'],
+  'Salud': ['JNJ', 'UNH', 'PFE', 'ABT', 'TMO', 'MRK', 'ABBV', 'LLY', 'DHR', 'BMY'],
+  'Energía': ['XOM', 'CVX', 'COP', 'OXY', 'MPC', 'SLB', 'EOG', 'PSX', 'VLO', 'PXD']
+}
 
-const POPULAR = [
-  { symbol: 'AAPL', name: 'Apple Inc', price: 198.45, change: +1.19, isGain: true },
-  { symbol: 'GOOGL', name: 'Alphabet Inc', price: 167.82, change: +0.85, isGain: true },
-  { symbol: 'AMZN', name: 'Amazon.com', price: 185.20, change: -0.32, isGain: false },
-  { symbol: 'MSFT', name: 'Microsoft Corp', price: 420.50, change: +0.62, isGain: true },
-  { symbol: 'BTC', name: 'Bitcoin', price: 67420.00, change: +2.34, isGain: true },
-]
+const SYMBOL_NAMES = {
+  NVDA: 'NVIDIA Corp', META: 'Meta Platforms', TSLA: 'Tesla Inc',
+  AAPL: 'Apple Inc', MSFT: 'Microsoft Corp', AMZN: 'Amazon.com Inc',
+  GOOGL: 'Alphabet Inc', NFLX: 'Netflix Inc', 'BRK.B': 'Berkshire Hathaway',
+  UNH: 'UnitedHealth Group',
+  AMD: 'Advanced Micro Devices', INTC: 'Intel Corp', CRM: 'Salesforce',
+  CSCO: 'Cisco Systems', ADBE: 'Adobe Inc', ORCL: 'Oracle Corp',
+  PYPL: 'PayPal Holdings', SHOP: 'Shopify Inc', SNOW: 'Snowflake Inc', TWLO: 'Twilio Inc',
+  JPM: 'JPMorgan Chase', V: 'Visa Inc', MA: 'Mastercard',
+  BAC: 'Bank of America', GS: 'Goldman Sachs', MS: 'Morgan Stanley',
+  WFC: 'Wells Fargo', BLK: 'BlackRock Inc', AXP: 'American Express',
+  JNJ: 'Johnson & Johnson', PFE: 'Pfizer Inc',
+  ABT: 'Abbott Labs', TMO: 'Thermo Fisher', MRK: 'Merck & Co',
+  ABBV: 'AbbVie Inc', LLY: 'Eli Lilly', DHR: 'Danaher Corp', BMY: 'Bristol-Myers Squibb',
+  XOM: 'Exxon Mobil', CVX: 'Chevron Corp', COP: 'ConocoPhillips',
+  OXY: 'Occidental Petroleum', MPC: 'Marathon Petroleum', SLB: 'Schlumberger',
+  EOG: 'EOG Resources', PSX: 'Phillips 66', VLO: 'Valero Energy', PXD: 'Pioneer Natural'
+}
+
+const TRENDING_SYMBOLS = ['SPY', 'QQQ', 'DIA', 'IWM', 'GLD', 'VTI']
+const TRENDING_NAMES = {
+  SPY: 'S&P 500', QQQ: 'Nasdaq 100', DIA: 'Dow Jones',
+  IWM: 'Russell 2000', GLD: 'Gold', VTI: 'Total Market'
+}
 
 export default function Search() {
   const navigate = useNavigate()
@@ -29,11 +49,104 @@ export default function Search() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
+  
+  const [loadingTrending, setLoadingTrending] = useState(false)
   const [activeCategory, setActiveCategory] = useState('Todas')
+  const [showAllInCategory, setShowAllInCategory] = useState(false)
+  const [loadingCategory, setLoadingCategory] = useState(false)
+  
+  const searchCache = useAppStore(s => s.searchCache)
+  const setSearchCache = useAppStore(s => s.setSearchCache)
+
+  const [trendingData, setTrendingData] = useState(searchCache.trending || [])
+  const [categoryData, setCategoryData] = useState(searchCache.categories[activeCategory] || [])
+
+  const { positions } = usePortfolio()
+  
+  const portfolioSymbols = new Set(positions.map(p => p.symbol))
 
   const firstName = user?.displayName?.split(' ')[0] || 'Inversor'
 
-  const searchTimeout = { current: null }
+  // Fetch Trending & Category real quotes
+  useEffect(() => {
+    let mounted = true
+    
+    const fetchCategory = async () => {
+      setLoadingCategory(true)
+      setLoadingTrending(true)
+      
+      try {
+        const categorySymbols = CAT_SYMBOLS[activeCategory]
+        const allSymbols = [...new Set([...categorySymbols, ...TRENDING_SYMBOLS])]
+        const quotes = await getBatchQuotes(allSymbols)
+        
+        if (!mounted) return
+
+        // Format Trending
+        const trending = TRENDING_SYMBOLS.map(sym => {
+          const q = quotes[sym]
+          if (!q) return null
+          return {
+            symbol: sym,
+            name: TRENDING_NAMES[sym],
+            price: q.c || 0,
+            change: q.d || 0,
+            changePercent: q.dp || 0,
+            isGain: (q.dp || 0) >= 0
+          }
+        }).filter(Boolean)
+        setTrendingData(trending)
+
+        // Format Category
+        const formatted = categorySymbols.map(sym => {
+          const q = quotes[sym]
+          if (!q) return null
+            return {
+              symbol: sym,
+              name: SYMBOL_NAMES[sym] || sym,
+              price: q.c || 0,
+              change: q.d || 0,
+              changePercent: q.dp || 0,
+              isGain: (q.dp || 0) >= 0
+            }
+        }).filter(Boolean)
+        
+        setCategoryData(formatted)
+
+        // Update Global Cache
+        setSearchCache({
+          trending: trending,
+          categories: {
+            ...searchCache.categories,
+            [activeCategory]: formatted
+          }
+        })
+      } catch (e) {
+        console.error('Error fetching category quotes', e)
+        // If error, ensure we have at least cached data
+        if (trendingData.length === 0 && searchCache.trending) {
+          setTrendingData(searchCache.trending)
+        }
+        if (categoryData.length === 0 && searchCache.categories[activeCategory]) {
+          setCategoryData(searchCache.categories[activeCategory])
+        }
+      } finally {
+        if (mounted) {
+          setLoadingCategory(false)
+          setLoadingTrending(false)
+        }
+      }
+    }
+    
+    // Only fetch if not currently searching something specific
+    if (query.length < 2) {
+      fetchCategory()
+    }
+    
+    return () => { mounted = false }
+  }, [activeCategory, query])
+
+  const searchTimeout = useRef(null)
   const handleSearch = useCallback((q) => {
     setQuery(q)
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
@@ -50,16 +163,6 @@ export default function Search() {
   }, [])
 
   const showDefault = !searching && query.length < 2
-
-  // Simple sparkline path for trending cards
-  const sparkline = (isGain) => {
-    const pts = Array.from({ length: 8 }, (_, i) => {
-      const x = (i / 7) * 60
-      const y = 20 + (Math.random() - (isGain ? 0.55 : 0.45)) * 16
-      return `${i === 0 ? 'M' : 'L'} ${x},${y}`
-    }).join(' ')
-    return pts
-  }
 
   return (
     <PageTransition>
@@ -100,7 +203,10 @@ export default function Search() {
             <button
               key={cat}
               className={`explore-cat-chip ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => {
+                setActiveCategory(cat)
+                setShowAllInCategory(false)
+              }}
             >
               {cat}
             </button>
@@ -130,7 +236,12 @@ export default function Search() {
                   {r.thumb ? <img src={r.thumb} alt="" /> : <span>{r.symbol?.slice(0,2)}</span>}
                 </div>
                 <div>
-                  <div className="search-result-symbol">{r.symbol}</div>
+                  <div className="search-result-symbol-row">
+                    <div className="search-result-symbol">{r.symbol}</div>
+                    {portfolioSymbols.has(r.symbol) && (
+                      <span className="portfolio-badge">En Cartera</span>
+                    )}
+                  </div>
                   <div className="search-result-name">{r.name}</div>
                 </div>
               </div>
@@ -150,61 +261,122 @@ export default function Search() {
         </div>
       )}
 
-      {/* Default Content: Trending + Popular */}
+      {/* Default Content: Trending / Category */}
       {showDefault && (
         <>
-          {/* Trending */}
+          {/* Market Overview */}
           <section className="explore-section">
             <div className="explore-section-header">
-              <h2>Tendencias</h2>
-              <button className="explore-see-all">Ver todas <ChevronRight size={14} /></button>
+              <h2>Mercado</h2>
             </div>
             <div className="explore-trending-scroll">
-              {TRENDING.map(stock => (
-                <div key={stock.symbol} className="explore-trending-card" onClick={() => navigate(`/add?symbol=${stock.symbol}&name=${encodeURIComponent(stock.name)}&type=stock`)}>
-                  <div className="trending-card-header">
-                    <span className="trending-symbol">{stock.symbol}</span>
-                    <span className={`trending-badge ${stock.isGain ? 'gain' : 'loss'}`}>
-                      {stock.isGain ? '+' : ''}{stock.change}%
-                    </span>
+              {loadingTrending ? (
+                [1,2,3].map(i => (
+                  <div key={i} className="shimmer trending-shimmer" style={{ minWidth: 160, height: 100, borderRadius: 16 }} />
+                ))
+              ) : (
+                trendingData.map(item => (
+                  <div key={item.symbol} className="explore-trending-card">
+                    <div className="trending-card-header">
+                      <span className="trending-symbol">{item.symbol}</span>
+                      <span className={`trending-badge ${item.isGain ? 'gain' : 'loss'}`}>
+                        {item.isGain ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                        {item.changePercent.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="trending-price">${item.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                    <div className="trending-name">{item.name}</div>
                   </div>
-                  <div className="trending-card-chart">
-                    <svg width="60" height="32" viewBox="0 0 60 32" fill="none">
-                      <path d={sparkline(stock.isGain)} stroke={stock.isGain ? 'var(--color-gain)' : 'var(--color-loss)'} strokeWidth="1.5" strokeLinecap="round" fill="none" />
-                    </svg>
-                  </div>
-                  <div className="trending-price">${stock.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                  <div className="trending-name">{stock.name}</div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </section>
 
-          {/* Popular */}
+          {/* Categories & Popular */}
           <section className="explore-section">
             <div className="explore-section-header">
-              <h2>Más Populares</h2>
-              <button className="explore-see-all">Ver todas <ChevronRight size={14} /></button>
+              <h2>Populares</h2>
+              <button className="explore-see-all" onClick={() => setShowAllInCategory(!showAllInCategory)}>
+                {showAllInCategory ? 'Ver menos' : 'Ver todas'} 
+                <ChevronRight size={14} style={{ transform: showAllInCategory ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
             </div>
-            <div className="explore-popular-list">
-              {POPULAR.map(stock => (
-                <button key={stock.symbol} className="explore-popular-item" onClick={() => navigate(`/add?symbol=${stock.symbol}&name=${encodeURIComponent(stock.name)}&type=stock`)}>
-                  <div className="popular-avatar">
-                    <span>{stock.symbol[0]}</span>
-                  </div>
-                  <div className="popular-info">
-                    <div className="popular-symbol">{stock.symbol}</div>
-                    <div className="popular-name">{stock.name}</div>
-                  </div>
-                  <div className="popular-right">
-                    <div className="popular-price">${stock.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                    <div className={`popular-change ${stock.isGain ? 'gain' : 'loss'}`}>
-                      {stock.isGain ? '+' : ''}{stock.change}%
-                    </div>
-                  </div>
+
+            <div className="explore-categories">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  className={`explore-cat-chip ${activeCategory === cat ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveCategory(cat)
+                    setShowAllInCategory(false)
+                  }}
+                >
+                  {cat}
                 </button>
               ))}
             </div>
+            
+            {loadingCategory ? (
+              <div className="search-loading">
+                {[1,2,3].map(i => (
+                  <div key={i} className="shimmer" style={{ width: '100%', height: 74, borderRadius: 16 }} />
+                ))}
+              </div>
+            ) : (
+              <div className="explore-popular-list">
+                <AnimatePresence mode="popLayout">
+                  {(showAllInCategory ? categoryData : categoryData.slice(0, 5)).map((stock, i) => (
+                    <motion.button
+                      key={stock.symbol}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2, delay: i * 0.05 }}
+                      className="explore-popular-item"
+                      onClick={() => navigate(`/add?symbol=${stock.symbol}&name=${encodeURIComponent(stock.name)}&type=stock`)}
+                    >
+                      <div className="popular-avatar">
+                        <img 
+                          src={`https://financialmodelingprep.com/image-stock/${stock.symbol}.png`} 
+                          alt="" 
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'
+                          }}
+                        />
+                        <span style={{ display: 'none' }}>{stock.symbol[0]}</span>
+                      </div>
+                      <div className="popular-info">
+                        <div className="popular-symbol-row">
+                          <div className="popular-symbol">{stock.symbol}</div>
+                          {portfolioSymbols.has(stock.symbol) && (
+                            <span className="portfolio-badge mini">En Cartera</span>
+                          )}
+                        </div>
+                        <div className="popular-name">{stock.name}</div>
+                      </div>
+                      <div className="popular-right">
+                        <div className="popular-price">${stock.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        <div className={`popular-change ${stock.isGain ? 'gain' : 'loss'}`}>
+                          {stock.isGain ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                          <span className="popular-change-abs">
+                            ({stock.isGain ? '+' : ''}{stock.change.toFixed(2)})
+                          </span>
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
+                </AnimatePresence>
+                
+                {!loadingCategory && categoryData.length === 0 && (
+                  <div className="search-empty-state" style={{ padding: '24px' }}>
+                    <p>No se pudieron cargar las cotizaciones.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </>
       )}

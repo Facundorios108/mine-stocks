@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit2, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Edit2, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
 import { usePortfolio } from '../hooks/usePortfolio'
 import { usePerformanceChart } from '../hooks/usePerformanceChart'
@@ -9,11 +9,10 @@ import useAppStore from '../store/useAppStore'
 import { deletePosition } from '../services/firestore'
 import { haptic } from '../utils/haptics'
 import PageTransition from '../components/common/PageTransition'
+import SellModal from '../components/portfolio/SellModal'
 import './StockDetail.css'
 
 const TIME_FILTERS = ['1D', '1W', '1M', '3M', '1Y', 'ALL']
-
-// Mock chart data generator removed
 
 export default function StockDetail() {
   const { id } = useParams()
@@ -24,6 +23,7 @@ export default function StockDetail() {
   
   const [activeFilter, setActiveFilter] = useState('1M')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showSellModal, setShowSellModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const position = useMemo(() => {
@@ -34,8 +34,6 @@ export default function StockDetail() {
 
   useEffect(() => {
     if (!position) {
-      // Si la posición no existe y no estamos cargando, volver atrás
-      // Pero como getEnrichedPositions es síncrono, si es undefined, no existe
       navigate('/')
     }
   }, [position, navigate])
@@ -211,21 +209,75 @@ export default function StockDetail() {
         </section>
       )}
 
-      {/* Danger Zone */}
-      <section className="detail-danger">
+      {/* Transaction History */}
+      <section className="detail-transactions">
+        <h3 className="detail-section-title">Historial de Transacciones</h3>
+        {position.transactions && position.transactions.length > 0 ? (
+          <div className="transactions-list">
+            {[...position.transactions]
+              .sort((a, b) => new Date(b.date) - new Date(a.date))
+              .map((tx, idx) => (
+              <div key={tx.id || idx} className="transaction-card">
+                <div className="transaction-info">
+                  <div className={`transaction-type ${tx.type}`}>
+                    {tx.type === 'buy' ? 'Compra' : 'Venta'}
+                  </div>
+                  <div className="transaction-date">
+                    {new Date(tx.date).toLocaleDateString('es-AR')}
+                  </div>
+                </div>
+                <div className="transaction-details">
+                  <div className="transaction-shares">
+                    {tx.shares} acciones
+                  </div>
+                  <div className="transaction-price">
+                    a {formatCurrency(tx.price, currency)} c/u
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="notes-card" style={{ textAlign: 'center', color: 'var(--color-on-surface-variant)' }}>
+            <p>No hay historial de transacciones detallado para esta posición.</p>
+          </div>
+        )}
+      </section>
+
+      {/* Actions Zone */}
+      <section className="detail-actions-zone">
         <button 
-          className="detail-delete-btn"
+          className="detail-sell-btn"
+          onClick={() => {
+            haptic.light()
+            setShowSellModal(true)
+          }}
+          disabled={shares <= 0}
+        >
+          <DollarSign size={18} />
+          Vender
+        </button>
+        
+        <button 
+          className="detail-delete-btn outline"
           onClick={() => {
             haptic.light()
             setShowDeleteModal(true)
           }}
         >
           <Trash2 size={18} />
-          Eliminar Posición
+          Eliminar
         </button>
       </section>
 
-      {/* Delete Modal */}
+      {/* Modals */}
+      <SellModal 
+        isOpen={showSellModal}
+        onClose={() => setShowSellModal(false)}
+        position={position}
+        onSold={() => refresh()}
+      />
+
       {showDeleteModal && (
         <div className="detail-modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="detail-modal" onClick={e => e.stopPropagation()}>
@@ -233,7 +285,7 @@ export default function StockDetail() {
               <h3>Eliminar {symbol}</h3>
             </div>
             <div className="detail-modal-body">
-              <p>¿Estás seguro de que querés eliminar esta posición? Esta acción no se puede deshacer y los datos se perderán para siempre.</p>
+              <p>¿Estás seguro de que querés eliminar esta posición? Se borrará todo el historial y no se sumará dinero a tu efectivo.</p>
             </div>
             <div className="detail-modal-actions">
               <button 

@@ -67,17 +67,42 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-md);
+  padding: 12px var(--space-md);
   background: var(--color-surface-container-low);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   color: var(--color-on-surface-variant);
   margin-bottom: var(--space-lg);
-  transition: background var(--duration-fast), box-shadow var(--duration-fast);
+  border: 1.5px solid transparent;
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .search-field:focus-within {
   background: var(--color-surface-container-lowest);
-  box-shadow: 0 0 0 2px rgba(0, 109, 61, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-fixed-dim), 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.search-result-symbol-row,
+.popular-symbol-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.portfolio-badge {
+  padding: 2px 6px;
+  background: rgba(0, 109, 61, 0.1);
+  color: var(--color-primary);
+  border-radius: 4px;
+  font: var(--font-label-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.portfolio-badge.mini {
+  font-size: 0.65rem;
+  padding: 1px 4px;
 }
 
 .search-field input {
@@ -292,6 +317,15 @@
 .popular-change {
   font: var(--font-label-md);
   margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.popular-change-abs {
+  font: var(--font-label-sm);
+  opacity: 0.7;
+  font-weight: 400;
 }
 
 .popular-change.gain {

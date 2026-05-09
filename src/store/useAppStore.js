@@ -19,6 +19,10 @@ const useAppStore = create(
       setCurrency: (currency) => set({ currency }),
       setDollarRates: (rates) => set({ dollarRates: rates }),
 
+      // Cash Management
+      cashBalance: 0,
+      setCashBalance: (amount) => set({ cashBalance: amount }),
+
       // Positions (PERSISTED → instant load on app open)
       positions: [],
       setPositions: (positions) => set({ positions }),
@@ -45,6 +49,15 @@ const useAppStore = create(
       lastFetchedAt: null,
       setLastFetchedAt: () => set({ lastFetchedAt: Date.now() }),
 
+      // Search Cache (PERSISTED)
+      searchCache: {
+        trending: [],
+        categories: {} // { 'Tecnología': [...], 'Finanzas': [...] }
+      },
+      setSearchCache: (updates) => set((state) => ({
+        searchCache: { ...state.searchCache, ...updates }
+      })),
+
       // UI
       isRefreshing: false,
       setRefreshing: (isRefreshing) => set({ isRefreshing }),
@@ -64,7 +77,9 @@ const useAppStore = create(
         quotes: state.quotes,
         currency: state.currency,
         dollarRates: state.dollarRates,
-        lastFetchedAt: state.lastFetchedAt
+        cashBalance: state.cashBalance,
+        lastFetchedAt: state.lastFetchedAt,
+        searchCache: state.searchCache
       })
     }
   )

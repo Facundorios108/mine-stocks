@@ -83,8 +83,8 @@ export async function getUserPreferences(userId) {
 
 export async function updateUserPreferences(userId, preferences) {
   const docRef = doc(db, 'users', userId)
-  await updateDoc(docRef, {
+  await setDoc(docRef, {
     ...preferences,
     updatedAt: serverTimestamp()
-  })
+  }, { merge: true })
 }

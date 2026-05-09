@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
-import { Briefcase, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
+import { Briefcase, TrendingUp, TrendingDown, ChevronRight, Search } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { usePortfolio } from '../hooks/usePortfolio'
 import PositionCard from '../components/portfolio/PositionCard'
 import PullToRefresh from '../components/common/PullToRefresh'
 import PageTransition, { staggerContainer, staggerItem } from '../components/common/PageTransition'
+import AnimatedCounter from '../components/common/AnimatedCounter'
+import CashModal from '../components/portfolio/CashModal'
+import SellModal from '../components/portfolio/SellModal'
 import { formatCurrency, formatPercent, formatPnL } from '../utils/formatters'
 import useAppStore from '../store/useAppStore'
 import './Portfolio.css'
@@ -18,11 +21,46 @@ export default function Portfolio() {
   const currency = useAppStore(s => s.currency)
   const { getPortfolioValue, getEnrichedPositions, isLoading, refresh } = usePortfolio()
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('performance') // 'performance', 'gain', 'value', 'date', 'symbol'
+
   const portfolio = getPortfolioValue()
-  const positions = getEnrichedPositions()
+  const positions = useMemo(() => {
+    let filtered = getEnrichedPositions()
+
+    // 1. Filter by search query (symbol)
+    if (searchQuery) {
+      const q = searchQuery.toUpperCase()
+      filtered = filtered.filter(p => p.symbol.includes(q))
+    }
+
+    // 2. Sort
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'performance':
+          return b.pnlPercent - a.pnlPercent
+        case 'gain':
+          return b.pnlAmount - a.pnlAmount
+        case 'value':
+          return b.totalValue - a.totalValue
+        case 'date':
+          const timeA = a.createdAt?.seconds || new Date(a.date || 0).getTime() / 1000
+          const timeB = b.createdAt?.seconds || new Date(b.date || 0).getTime() / 1000
+          return timeB - timeA
+        case 'symbol':
+          return a.symbol.localeCompare(b.symbol)
+        default:
+          return 0
+      }
+    })
+  }, [getEnrichedPositions, searchQuery, sortBy])
   const isGain = portfolio.totalPnL >= 0
 
   const [activeIndex, setActiveIndex] = useState(null)
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false)
+  const [isSellModalOpen, setIsSellModalOpen] = useState(false)
+  const [selectedPosition, setSelectedPosition] = useState(null)
+  const [cashAction, setCashAction] = useState('deposit')
 
   // Calculate allocation data
   const donutData = useMemo(() => {
@@ -38,7 +76,7 @@ export default function Portfolio() {
       data.push({ name: 'Otros', value: othersValue })
     }
     return data
-  }, [positions, portfolio.totalValue])
+  }, [positions, portfolio.totalInvested])
 
   const onPieEnter = (_, index) => {
     setActiveIndex(index);
@@ -59,29 +97,46 @@ export default function Portfolio() {
         {/* Main Metrics Card */}
         <section className="portfolio-main-card">
           <div className="portfolio-card-header">
-          <Briefcase size={20} className="portfolio-card-icon" />
-          <span>Valor Actual</span>
-        </div>
-        <div className="portfolio-card-value">
-          {isLoading ? (
-            <div className="shimmer" style={{ width: 180, height: 40, borderRadius: 8 }} />
-          ) : (
-            formatCurrency(portfolio.totalValue, currency)
-          )}
-        </div>
-        {!isLoading && portfolio.positionCount > 0 && (
-          <div className={`portfolio-card-change ${isGain ? 'gain' : 'loss'}`}>
-            {isGain ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-            <span>{formatPnL(portfolio.totalPnL, currency)}</span>
-            <span className="portfolio-card-change-pct">({formatPercent(portfolio.totalPnLPercent)})</span>
+            <Briefcase size={20} className="portfolio-card-icon" />
+            <span>Patrimonio Neto</span>
           </div>
-        )}
-      </section>
+          <div className="portfolio-card-value">
+            {isLoading ? (
+              <div className="shimmer" style={{ width: 180, height: 40, borderRadius: 8 }} />
+            ) : (
+              <AnimatedCounter 
+                value={portfolio.netWorth} 
+                formatter={(v) => formatCurrency(v, currency)} 
+              />
+            )}
+          </div>
+          {!isLoading && portfolio.positionCount > 0 && (
+            <div className="portfolio-hero-performance">
+              <div className={`portfolio-perf-item ${portfolio.totalPnL >= 0 ? 'gain' : 'loss'}`}>
+                <span className="perf-label">Ganancia Total</span>
+                <div className="perf-value">
+                  {portfolio.totalPnL >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  <span>{formatPnL(portfolio.totalPnL, currency)}</span>
+                  <small>({formatPercent(portfolio.totalPnLPercent)})</small>
+                </div>
+              </div>
+              <div className="portfolio-perf-divider" />
+              <div className={`portfolio-perf-item ${portfolio.dailyPnL >= 0 ? 'gain' : 'loss'}`}>
+                <span className="perf-label">Hoy</span>
+                <div className="perf-value">
+                  {portfolio.dailyPnL >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                  <span>{formatPnL(portfolio.dailyPnL, currency)}</span>
+                  <small>({formatPercent(portfolio.dailyPnLPercent)})</small>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
       {/* Stats Grid */}
       <section className="portfolio-stats-grid">
         <div className="portfolio-stat-box">
-          <div className="stat-box-label">Inversión Total</div>
+          <div className="stat-box-label">Invertido</div>
           <div className="stat-box-value">
             {isLoading ? (
               <div className="shimmer" style={{ width: 100, height: 24, borderRadius: 4 }} />
@@ -90,13 +145,13 @@ export default function Portfolio() {
             )}
           </div>
         </div>
-        <div className="portfolio-stat-box">
-          <div className="stat-box-label">Posiciones</div>
+        <div className="portfolio-stat-box" onClick={() => { setCashAction('deposit'); setIsCashModalOpen(true); }}>
+          <div className="stat-box-label">Efectivo</div>
           <div className="stat-box-value">
             {isLoading ? (
               <div className="shimmer" style={{ width: 40, height: 24, borderRadius: 4 }} />
             ) : (
-              portfolio.positionCount
+              formatCurrency(portfolio.cashBalance, currency)
             )}
           </div>
         </div>
@@ -168,7 +223,7 @@ export default function Portfolio() {
                     key="active-state"
                   >
                     <span style={{ fontSize: '1.2rem', color: COLORS[activeIndex % COLORS.length] }}>
-                      {formatPercent((donutData[activeIndex].value / portfolio.totalValue) * 100)}
+                      {formatPercent((donutData[activeIndex].value / portfolio.totalInvested) * 100)}
                     </span>
                     <small>{donutData[activeIndex].name}</small>
                   </motion.div>
@@ -191,7 +246,7 @@ export default function Portfolio() {
                   <div className="legend-color" style={{ background: COLORS[idx % COLORS.length] }} />
                   <div className="legend-name">{item.name}</div>
                   <div className="legend-pct">
-                    {formatPercent((item.value / portfolio.totalValue) * 100)}
+                    {formatPercent((item.value / portfolio.totalInvested) * 100)}
                   </div>
                 </div>
               ))}
@@ -203,6 +258,30 @@ export default function Portfolio() {
       {/* Positions List */}
       <section className="portfolio-positions">
         <h2 className="portfolio-section-title">Todas las Posiciones</h2>
+        
+        <div className="portfolio-filters">
+          <div className="portfolio-search-box">
+            <Search size={16} />
+            <input 
+              type="text" 
+              placeholder="Filtrar por ticker..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="portfolio-sort-box">
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="performance">Rendimiento (%)</option>
+              <option value="gain">Ganancia ($)</option>
+              <option value="value">Valor Total</option>
+              <option value="date">Fecha de compra</option>
+              <option value="symbol">Símbolo (A-Z)</option>
+            </select>
+          </div>
+        </div>
         
         {isLoading ? (
           <div className="portfolio-skeleton-list">
@@ -230,7 +309,13 @@ export default function Portfolio() {
           >
             {positions.map(pos => (
               <motion.div key={pos.id} variants={staggerItem}>
-                <PositionCard position={pos} />
+                <PositionCard 
+                  position={pos} 
+                  onSellClick={() => {
+                    setSelectedPosition(pos)
+                    setIsSellModalOpen(true)
+                  }}
+                />
               </motion.div>
             ))}
           </motion.div>
@@ -238,6 +323,21 @@ export default function Portfolio() {
       </section>
       </div>
     </PullToRefresh>
+    <CashModal 
+      isOpen={isCashModalOpen} 
+      onClose={() => setIsCashModalOpen(false)} 
+      initialAction={cashAction} 
+    />
+    {selectedPosition && (
+      <SellModal 
+        isOpen={isSellModalOpen}
+        onClose={() => {
+          setIsSellModalOpen(false)
+          setSelectedPosition(null)
+        }}
+        position={selectedPosition}
+      />
+    )}
     </PageTransition>
   )
 }

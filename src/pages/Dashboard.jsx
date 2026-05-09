@@ -5,6 +5,8 @@ import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePortfolio } from '../hooks/usePortfolio'
 import { usePerformanceChart } from '../hooks/usePerformanceChart'
+import CashModal from '../components/portfolio/CashModal'
+import SellModal from '../components/portfolio/SellModal'
 import PositionCard from '../components/portfolio/PositionCard'
 import PullToRefresh from '../components/common/PullToRefresh'
 import PageTransition, { staggerContainer, staggerItem } from '../components/common/PageTransition'
@@ -27,6 +29,10 @@ export default function Dashboard() {
   const currency = useAppStore(s => s.currency)
   const user = useAppStore(s => s.user)
   const [activeFilter, setActiveFilter] = useState('1M')
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false)
+  const [isSellModalOpen, setIsSellModalOpen] = useState(false)
+  const [selectedPosition, setSelectedPosition] = useState(null)
+  const [cashAction, setCashAction] = useState('deposit') // 'deposit' | 'withdraw'
 
   const {
     isLoading,
@@ -38,7 +44,14 @@ export default function Dashboard() {
   } = usePortfolio()
 
   const portfolio = getPortfolioValue()
-  const enrichedPositions = getEnrichedPositions()
+  const enrichedPositions = useMemo(() => {
+    return getEnrichedPositions().sort((a, b) => {
+      // Sort by date (newest first)
+      const timeA = a.createdAt?.seconds || new Date(a.date || 0).getTime() / 1000
+      const timeB = b.createdAt?.seconds || new Date(b.date || 0).getTime() / 1000
+      return timeB - timeA
+    })
+  }, [getEnrichedPositions])
   const isGain = portfolio.totalPnL >= 0
   const balanceReady = !isLoading && !quotesLoading
 
@@ -109,25 +122,73 @@ export default function Dashboard() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-          <AnimatePresence>
+          </div>          <AnimatePresence>
             {balanceReady && portfolio.positionCount > 0 && (
-              <motion.div 
-                className={`dash-hero-change ${isGain ? 'gain' : 'loss'}`}
-                {...fadeIn}
-              >
-                {isGain ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                <span>{formatPercent(portfolio.totalPnLPercent)}</span>
-                <span className="dash-hero-change-amount">
-                  (<AnimatedCounter
-                    value={portfolio.totalPnL}
-                    formatter={pnlFormatter}
-                    duration={0.8}
-                  />) este mes
-                </span>
+              <motion.div className="dash-hero-performance" {...fadeIn}>
+                <div className={`dash-performance-item ${portfolio.totalPnL >= 0 ? 'gain' : 'loss'}`}>
+                  <span className="dash-performance-label">Ganancia Total</span>
+                  <div className="dash-performance-value">
+                    {portfolio.totalPnL >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                    <span>{formatPnL(portfolio.totalPnL, currency)}</span>
+                    <small>({formatPercent(portfolio.totalPnLPercent)})</small>
+                  </div>
+                </div>
+
+                <div className="dash-performance-divider" />
+
+                <div className={`dash-performance-item ${portfolio.dailyPnL >= 0 ? 'gain' : 'loss'}`}>
+                  <span className="dash-performance-label">Hoy</span>
+                  <div className="dash-performance-value">
+                    {portfolio.dailyPnL >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                    <span>{formatPnL(portfolio.dailyPnL, currency)}</span>
+                    <small>({formatPercent(portfolio.dailyPnLPercent)})</small>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          <AnimatePresence>
+            {balanceReady && (
+              <motion.div className="dash-hero-breakdown" {...fadeIn}>
+                <div className="dash-hero-breakdown-item">
+                  <span className="dash-hero-breakdown-label">Invertido</span>
+                  <span className="dash-hero-breakdown-value">
+                    <AnimatedCounter
+                      value={portfolio.totalCost}
+                      formatter={balanceFormatter}
+                      duration={1}
+                    />
+                  </span>
+                </div>
+                <div className="dash-hero-breakdown-item" style={{ alignItems: 'flex-end' }}>
+                  <span className="dash-hero-breakdown-label">Poder de compra</span>
+                  <span className="dash-hero-breakdown-value">
+                    <AnimatedCounter
+                      value={portfolio.cashBalance}
+                      formatter={balanceFormatter}
+                      duration={1}
+                    />
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="dash-hero-actions">
+            <button 
+              className="dash-btn-cash"
+              onClick={() => { setCashAction('deposit'); setIsCashModalOpen(true) }}
+            >
+              <Plus size={16} /> Depositar
+            </button>
+            <button 
+              className="dash-btn-cash"
+              onClick={() => { setCashAction('withdraw'); setIsCashModalOpen(true) }}
+            >
+              Retirar
+            </button>
+          </div>
         </div>
       </section>
 
@@ -274,7 +335,13 @@ export default function Dashboard() {
             >
               {enrichedPositions.slice(0, 5).map((pos, index) => (
                 <motion.div key={pos.id} variants={staggerItem}>
-                  <PositionCard position={pos} />
+                  <PositionCard 
+                    position={pos} 
+                    onSellClick={() => {
+                      setSelectedPosition(pos)
+                      setIsSellModalOpen(true)
+                    }}
+                  />
                 </motion.div>
               ))}
             </motion.div>
@@ -290,6 +357,27 @@ export default function Dashboard() {
       )}
       </div>
     </PullToRefresh>
+
+    <AnimatePresence>
+      {isCashModalOpen && (
+        <CashModal 
+          isOpen={isCashModalOpen} 
+          onClose={() => setIsCashModalOpen(false)} 
+          initialAction={cashAction}
+        />
+      )}
+    </AnimatePresence>
+
+    {selectedPosition && (
+      <SellModal 
+        isOpen={isSellModalOpen}
+        onClose={() => {
+          setIsSellModalOpen(false)
+          setSelectedPosition(null)
+        }}
+        position={selectedPosition}
+      />
+    )}
     </PageTransition>
   )
 }

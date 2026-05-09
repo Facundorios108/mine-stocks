@@ -14,6 +14,7 @@ export function usePortfolio() {
   const setDollarRates = useAppStore(s => s.setDollarRates)
   const dollarRates = useAppStore(s => s.dollarRates)
   const currency = useAppStore(s => s.currency)
+  const cashBalance = useAppStore(s => s.cashBalance)
   const setLastFetchedAt = useAppStore(s => s.setLastFetchedAt)
   const queryClient = useQueryClient()
 
@@ -98,46 +99,87 @@ export function usePortfolio() {
 
   // Calculate portfolio metrics
   const getPortfolioValue = useCallback(() => {
-    let totalCost = 0
-    let totalValue = 0
+    let totalCostBasis = 0; // The actual money invested (USD)
+    let totalMarketValue = 0; // The current market value of open positions (USD)
+    let totalRealizedPnL = 0;
+    let totalRealizedCost = 0;
 
     positions.forEach(pos => {
+      // 1. Open positions contribution
       const quote = quotes[pos.symbol]
       const currentPrice = quote?.c || 0
       const cost = pos.shares * pos.averageCost
       const value = pos.shares * currentPrice
 
-      totalCost += cost
-      totalValue += value
+      totalCostBasis += cost
+      totalMarketValue += value
+
+      // 2. Realized PnL contribution from sell transactions
+      if (pos.transactions) {
+        pos.transactions.forEach(t => {
+          if (t.type === 'sell') {
+            const costAtSale = t.averageCostAtSale || pos.averageCost || t.price
+            const pnl = t.shares * (t.price - costAtSale)
+            totalRealizedPnL += pnl
+            totalRealizedCost += (t.shares * costAtSale)
+          }
+        })
+      }
     })
 
-    const totalPnL = totalValue - totalCost
-    const totalPnLPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0
+    let dailyPnL = 0
+    positions.forEach(pos => {
+      const quote = quotes[pos.symbol]
+      if (quote && pos.shares > 0) {
+        dailyPnL += pos.shares * (quote.d || 0)
+      }
+    })
+
+    // Total PnL = Unrealized PnL (Market Value - Cost Basis) + Realized PnL
+    const unrealizedPnL = totalMarketValue - totalCostBasis
+    const totalPnL = unrealizedPnL + totalRealizedPnL
+    
+    // PnL % based on total capital assigned to these positions (active + realized)
+    const denominator = totalCostBasis + totalRealizedCost
+    const totalPnLPercent = denominator > 0 ? (totalPnL / denominator) * 100 : 0
+    
+    const netWorth = totalMarketValue + cashBalance
 
     // Convert to ARS if needed
-    let displayValue = totalValue
-    let displayCost = totalCost
-    let displayPnL = totalPnL
     let exchangeRate = 1
-
     if (currency === 'ARS' && dollarRates) {
-      // Cocos Capital uses "dólar oficial al valor de compra"
       const rate = dollarRates['oficial']
       exchangeRate = rate?.buy || rate?.sell || 1
-      displayValue = totalValue * exchangeRate
-      displayCost = totalCost * exchangeRate
-      displayPnL = totalPnL * exchangeRate
     }
 
+    const displayInvestedMarketValue = totalMarketValue * exchangeRate
+    const displayCash = cashBalance * exchangeRate
+    const displayNetWorth = netWorth * exchangeRate
+    const displayCostBasis = totalCostBasis * exchangeRate
+    const displayPnL = totalPnL * exchangeRate
+    const displayDailyPnL = dailyPnL * exchangeRate
+    
+    // Daily percent change = (today_change) / (previous_day_market_value)
+    const prevMarketValue = totalMarketValue - dailyPnL
+    const displayDailyPnLPercent = prevMarketValue > 0 ? (dailyPnL / prevMarketValue) * 100 : 0
+
     return {
-      totalValue: displayValue,
-      totalCost: displayCost,
+      netWorth: displayNetWorth,
+      totalValue: displayNetWorth, 
+      totalInvestedMarketValue: displayInvestedMarketValue,
+      totalInvested: displayInvestedMarketValue,
+      cashBalance: displayCash,
+      totalCost: displayCostBasis, // This is "Invertido"
       totalPnL: displayPnL,
       totalPnLPercent,
+      dailyPnL: displayDailyPnL,
+      dailyPnLPercent: displayDailyPnLPercent,
+      unrealizedPnL: unrealizedPnL * exchangeRate,
+      realizedPnL: totalRealizedPnL * exchangeRate,
       exchangeRate,
-      positionCount: positions.length
+      positionCount: positions.filter(p => p.shares > 0).length
     }
-  }, [positions, quotes, currency, dollarRates])
+  }, [positions, quotes, currency, dollarRates, cashBalance])
 
   // Get enriched position data (with current prices)
   const getEnrichedPositions = useCallback(() => {

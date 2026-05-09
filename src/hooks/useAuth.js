@@ -21,6 +21,9 @@ export function useAuth() {
           if (prefs?.preferredDollarType) {
             useAppStore.getState().setDollarType(prefs.preferredDollarType)
           }
+          if (prefs?.cashBalance !== undefined) {
+            useAppStore.getState().setCashBalance(prefs.cashBalance)
+          }
         } catch (err) {
           console.warn('Failed to load user preferences:', err)
         }

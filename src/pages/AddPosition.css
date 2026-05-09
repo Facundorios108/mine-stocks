@@ -53,7 +53,8 @@
 
 .add-search-field:focus-within {
   background: var(--color-surface-container-lowest);
-  box-shadow: 0 0 0 2px rgba(0, 109, 61, 0.15);
+  border-color: rgba(0, 109, 61, 0.3);
+  box-shadow: 0 0 0 4px rgba(0, 109, 61, 0.1), 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .add-search-field input {
@@ -104,7 +105,24 @@
 .add-result-avatar span { font: var(--font-title-sm); color: var(--color-on-surface); }
 
 .add-result-info { flex: 1; min-width: 0; }
-.add-result-symbol { font: var(--font-title-sm); color: var(--color-on-surface); }
+.add-result-symbol {
+  font-weight: 600;
+  color: var(--color-on-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-in-portfolio-badge {
+  font-size: 10px;
+  background: rgba(0, 109, 61, 0.1);
+  color: #008f51;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 .add-result-name {
   font: var(--font-body-sm);
   color: var(--color-on-surface-variant);
@@ -147,6 +165,59 @@
   padding: var(--space-md);
   background: var(--color-surface-container-lowest);
   border-radius: var(--radius-md);
+}
+
+.existing-position-info {
+  background: rgba(0, 109, 61, 0.04);
+  border: 1px solid rgba(0, 109, 61, 0.12);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.existing-position-info .info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #008f51;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.existing-position-info .info-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.existing-position-info .detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.existing-position-info .detail-label {
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.existing-position-info .detail-value {
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.existing-position-info .info-footer {
+  font-size: 12px;
+  color: var(--color-on-surface-variant);
+  margin-top: 12px;
+  text-align: center;
+  opacity: 0.8;
 }
 
 .preview-avatar {
@@ -204,7 +275,8 @@
 }
 
 .add-form-field:focus-within {
-  box-shadow: 0 0 0 2px rgba(0, 109, 61, 0.2);
+  border-color: rgba(0, 109, 61, 0.3);
+  box-shadow: 0 0 0 4px rgba(0, 109, 61, 0.1), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .add-form-field input, .add-form-field textarea {
