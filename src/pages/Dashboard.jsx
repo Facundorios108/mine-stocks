@@ -48,7 +48,6 @@ export default function Dashboard() {
     return getEnrichedPositions()
       .filter(p => p.shares > 0)
       .sort((a, b) => {
-        // Sort by date (newest first)
         const timeA = a.createdAt?.seconds || new Date(a.date || 0).getTime() / 1000
         const timeB = b.createdAt?.seconds || new Date(b.date || 0).getTime() / 1000
         return timeB - timeA

@@ -49,19 +49,23 @@ export default function PositionCard({ position, onSellClick }) {
     const offset = info.offset.x;
     const velocity = info.velocity.x;
     
-    // If swiped significantly or with high velocity, trigger sell
-    const triggerThreshold = -140;
+    // Deep swipe threshold (e.g., -180px) to trigger action immediately
+    const actionThreshold = -180;
     const swipeOpenThreshold = -40;
     
-    if (offset < triggerThreshold || (velocity < -500 && offset < swipeOpenThreshold)) {
+    if (offset < actionThreshold || velocity < -800) {
+      // Trigger sell immediately on deep swipe
       haptic.heavy()
-      controls.start({ x: -80 }) // Keep it open at the button
-      setIsOpen(true)
-    } else if (offset < swipeOpenThreshold) {
+      controls.start({ x: 0 })
+      setIsOpen(false)
+      onSellClick?.()
+    } else if (offset < swipeOpenThreshold || velocity < -400) {
+      // Reveal the sell button
       setIsOpen(true)
       controls.start({ x: -80 })
       haptic.medium()
     } else {
+      // Snap back
       setIsOpen(false)
       controls.start({ x: 0 })
     }

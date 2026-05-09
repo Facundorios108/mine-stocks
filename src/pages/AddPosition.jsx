@@ -163,7 +163,7 @@ export default function AddPosition() {
           showToast('Posición actualizada')
         } else {
           // Check if position already exists
-          const existing = currentPositions.find(p => p.symbol === positionData.symbol)
+          const existing = currentPositions.find(p => p.symbol.trim().toUpperCase() === positionData.symbol.trim().toUpperCase())
           
           if (existing) {
             // Merge logic

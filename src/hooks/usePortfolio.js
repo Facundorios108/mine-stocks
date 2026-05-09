@@ -170,7 +170,8 @@ export function usePortfolio() {
       netWorth: displayNetWorth,
       totalValue: displayNetWorth, 
       marketValue: displayMarketValue,
-      invested: displayInvested, // This is what the user actually spent
+      invested: displayInvested, // Current capital at risk
+      totalInvested: displayInvested, // For component compatibility
       cashBalance: displayCash,
       totalPnL: displayPnL,
       totalPnLPercent,
