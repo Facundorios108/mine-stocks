@@ -1,0 +1,136 @@
+.confirm-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.confirm-modal-container {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.confirm-modal-content {
+  background: rgba(30, 34, 45, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 32px 24px 24px;
+  text-align: center;
+  position: relative;
+}
+
+.confirm-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--color-on-surface-variant);
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.confirm-modal-close:hover {
+  opacity: 1;
+}
+
+.confirm-modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.confirm-modal-icon.danger {
+  background: rgba(255, 118, 113, 0.1);
+  color: #ff7671;
+}
+
+.confirm-modal-icon.warning {
+  background: rgba(255, 184, 0, 0.1);
+  color: #ffb800;
+}
+
+.confirm-modal-icon.primary {
+  background: rgba(76, 224, 142, 0.1);
+  color: #4ce08e;
+}
+
+.confirm-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 12px;
+}
+
+.confirm-modal-message {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-on-surface-variant);
+  margin: 0 0 28px;
+}
+
+.confirm-modal-footer {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-modal-footer button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-btn-cancel {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.confirm-btn-cancel:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0.98);
+}
+
+.confirm-btn-action.danger {
+  background: #ff7671;
+  color: white;
+}
+
+.confirm-btn-action.warning {
+  background: #ffb800;
+  color: #1a1c1e;
+}
+
+.confirm-btn-action.primary {
+  background: #4ce08e;
+  color: #1a1c1e;
+}
+
+.confirm-btn-action:active {
+  filter: brightness(0.9);
+  transform: scale(0.98);
+}

@@ -280,63 +280,8 @@
 .transaction-type.buy { color: var(--color-gain); }
 .transaction-type.sell { color: #ff9800; }
 
-/* ── Modal ── */
-.detail-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: var(--z-modal);
-  animation: fadeIn var(--duration-fast) var(--ease-out);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.detail-modal {
-  background: var(--color-background);
-  width: 100%;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--space-xl) var(--space-lg) calc(var(--safe-bottom) + var(--space-xl));
-  animation: slideUp var(--duration-normal) var(--ease-out);
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.detail-modal-header {
-  margin-bottom: var(--space-md);
-}
-
-.detail-modal-header h3 {
-  font: var(--font-title-lg);
-  color: var(--color-error);
-}
-
-.detail-modal-body {
-  margin-bottom: var(--space-xl);
-}
-
-.detail-modal-body p {
-  font: var(--font-body-md);
-  color: var(--color-on-surface-variant);
-  line-height: 1.5;
-}
-
-.detail-modal-actions {
-  display: flex;
-  gap: var(--space-sm);
-}
-
+/* ── Modals are now handled by global classes ── */
 .modal-cancel-btn {
-  flex: 1;
   padding: var(--space-md);
   border-radius: var(--radius-full);
   font: var(--font-title-sm);
@@ -345,7 +290,6 @@
 }
 
 .modal-confirm-btn {
-  flex: 1;
   padding: var(--space-md);
   border-radius: var(--radius-full);
   font: var(--font-title-sm);

@@ -105,20 +105,23 @@ export function usePortfolio() {
     let totalRealizedCost = 0;
 
     positions.forEach(pos => {
-      // 1. Open positions contribution
+      // 1. Contribution from current holdings (Active positions)
       const quote = quotes[pos.symbol]
       const currentPrice = quote?.c || 0
-      const cost = pos.shares * pos.averageCost
-      const value = pos.shares * currentPrice
+      
+      if (pos.shares > 0) {
+        const cost = pos.shares * (pos.averageCost || 0)
+        const value = pos.shares * currentPrice
 
-      totalCostBasis += cost
-      totalMarketValue += value
+        totalCostBasis += cost
+        totalMarketValue += value
+      }
 
-      // 2. Realized PnL contribution from sell transactions
+      // 2. Realized PnL and Cost contribution from all transactions (Buy/Sell)
       if (pos.transactions) {
         pos.transactions.forEach(t => {
           if (t.type === 'sell') {
-            // Use historical average cost if available, otherwise fallback
+            // Realized PnL: (Sell Price - Cost at Sale) * Shares
             const costAtSale = t.averageCostAtSale || pos.averageCost || t.price
             const pnl = t.shares * (t.price - costAtSale)
             totalRealizedPnL += pnl
@@ -128,6 +131,7 @@ export function usePortfolio() {
       }
     })
 
+    // Calculate Today's Change
     let dailyPnL = 0
     positions.forEach(pos => {
       const quote = quotes[pos.symbol]
@@ -136,15 +140,15 @@ export function usePortfolio() {
       }
     })
 
-    // Unrealized PnL = Current Market Value - Cost Basis
+    // Unrealized PnL = Current Market Value - Cost Basis of Active Shares
     const unrealizedPnL = totalMarketValue - totalCostBasis
-    // Total PnL = Unrealized + Realized
+    
+    // Total PnL = What I made from selling + What I'm making from keeping
     const totalPnL = unrealizedPnL + totalRealizedPnL
     
-    // Calculate PnL % based on total capital used (active cost + historical sold cost)
-    // This gives a true representation of portfolio performance over time
-    const totalCapitalUsed = totalCostBasis + totalRealizedCost
-    const totalPnLPercent = totalCapitalUsed > 0 ? (totalPnL / totalCapitalUsed) * 100 : 0
+    // Performance % based on Total Capital actually put into the market (Active + Historically Sold)
+    const totalCapitalAtRisk = totalCostBasis + totalRealizedCost
+    const totalPnLPercent = totalCapitalAtRisk > 0 ? (totalPnL / totalCapitalAtRisk) * 100 : 0
     
     const netWorth = totalMarketValue + cashBalance
 
@@ -186,38 +190,52 @@ export function usePortfolio() {
 
   // Get enriched position data (with current prices)
   const getEnrichedPositions = useCallback(() => {
-    return positions.map(pos => {
+    // 1. Group positions by symbol to handle duplicates
+    const grouped = positions.reduce((acc, pos) => {
+      const symbol = pos.symbol?.trim().toUpperCase() || 'UNKNOWN'
+      if (!acc[symbol]) {
+        acc[symbol] = { ...pos, transactions: [...(pos.transactions || [])] }
+      } else {
+        // Merge shares and average cost
+        const totalShares = acc[symbol].shares + pos.shares
+        if (totalShares > 0) {
+          acc[symbol].averageCost = ((acc[symbol].shares * acc[symbol].averageCost) + (pos.shares * pos.averageCost)) / totalShares
+        }
+        acc[symbol].shares = totalShares
+        acc[symbol].transactions = [...acc[symbol].transactions, ...(pos.transactions || [])]
+        // Keep the oldest date or other metadata if needed
+      }
+      return acc
+    }, {})
+
+    // 2. Enrich the consolidated positions
+    return Object.values(grouped).map(pos => {
       const quote = quotes[pos.symbol]
       const currentPrice = quote?.c || 0
       const change = quote?.d || 0
       const changePercent = quote?.dp || 0
-      const cost = pos.shares * pos.averageCost
+      
+      // Cost calculation: ensure we use the stored average cost (USD)
+      const cost = pos.shares * (pos.averageCost || 0)
       const value = pos.shares * currentPrice
       const pnl = value - cost
       const pnlPercent = cost > 0 ? (pnl / cost) * 100 : 0
 
-      let displayPrice = currentPrice
-      let displayValue = value
-      let displayCost = cost
-      let displayPnl = pnl
-
+      let exchangeRate = 1
       if (currency === 'ARS' && dollarRates) {
-        const rate = dollarRates['oficial']?.buy || dollarRates['oficial']?.sell || 1
-        displayPrice = currentPrice * rate
-        displayValue = value * rate
-        displayCost = cost * rate
-        displayPnl = pnl * rate
+        const rate = dollarRates['oficial']
+        exchangeRate = rate?.buy || rate?.sell || 1
       }
 
       return {
         ...pos,
-        currentPrice: displayPrice,
+        currentPrice: currentPrice * exchangeRate,
         currentPriceUsd: currentPrice,
-        change,
+        change: change * exchangeRate,
         changePercent,
-        totalValue: displayValue,
-        cost: displayCost,
-        pnlAmount: displayPnl,
+        totalValue: value * exchangeRate,
+        cost: cost * exchangeRate,
+        pnlAmount: pnl * exchangeRate,
         pnlPercent,
         isGain: pnl >= 0,
         quoteLoaded: !!quote
@@ -230,6 +248,38 @@ export function usePortfolio() {
   const isActuallyLoading = positionsQuery.isLoading && !hasCachedPositions
   const quotesActuallyLoading = quotesQuery.isLoading && !hasCachedQuotes
 
+  // Delete all positions for a specific symbol
+  const deletePositionBySymbol = useCallback(async (symbol) => {
+    if (!user?.uid) return
+    
+    // 1. Find all matching position records in the store
+    const positionsToDelete = positions.filter(p => 
+      p.symbol?.trim().toUpperCase() === symbol.trim().toUpperCase()
+    )
+    
+    if (positionsToDelete.length === 0) return
+
+    // 2. Optimistic UI update
+    const remainingPositions = positions.filter(p => 
+      p.symbol?.trim().toUpperCase() !== symbol.trim().toUpperCase()
+    )
+    setPositions(remainingPositions)
+
+    try {
+      const { deletePosition } = await import('../services/firestore')
+      // 3. Delete from Firestore
+      await Promise.all(
+        positionsToDelete.map(p => deletePosition(user.uid, p.id))
+      )
+      return true
+    } catch (err) {
+      console.error('Error in deletePositionBySymbol:', err)
+      // Rollback on error
+      setPositions(positions)
+      throw err
+    }
+  }, [user, positions, setPositions])
+
   return {
     positions,
     quotes,
@@ -239,6 +289,7 @@ export function usePortfolio() {
     refresh,
     getPortfolioValue,
     getEnrichedPositions,
+    deletePositionBySymbol,
     dollarRates,
     error: positionsQuery.error || quotesQuery.error
   }

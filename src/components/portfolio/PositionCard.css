@@ -3,20 +3,19 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: var(--space-sm);
-  background: var(--color-surface-container-lowest);
+  background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
 
 .swipe-action-bg {
   position: absolute;
   inset: 0;
-  background: var(--color-error-container);
+  background: var(--color-surface-container-lowest);
   display: flex;
   justify-content: flex-end;
   align-items: center;
   border-radius: var(--radius-md);
   overflow: hidden;
-  color: var(--color-on-error-container);
 }
 
 .swipe-action-content {
@@ -27,8 +26,6 @@
   width: 80px;
   height: 100%;
   border: none;
-  background: var(--color-error);
-  color: white;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -36,10 +33,25 @@
   cursor: pointer;
   gap: 4px;
   z-index: 1;
+  transition: opacity 0.2s ease;
+}
+
+.swipe-action-btn.sell {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.swipe-action-btn.delete {
+  background: var(--color-error);
+  color: var(--color-on-error);
+}
+
+.swipe-action-btn:active {
+  opacity: 0.8;
 }
 
 .swipe-action-btn span {
-  font: var(--font-label-sm);
+  font: var(--font-label-xs);
   font-weight: 700;
   text-transform: uppercase;
 }

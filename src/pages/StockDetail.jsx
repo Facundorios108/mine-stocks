@@ -278,34 +278,59 @@ export default function StockDetail() {
         onSold={() => refresh()}
       />
 
-      {showDeleteModal && (
-        <div className="detail-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="detail-modal" onClick={e => e.stopPropagation()}>
-            <div className="detail-modal-header">
-              <h3>Eliminar {symbol}</h3>
-            </div>
-            <div className="detail-modal-body">
-              <p>¿Estás seguro de que querés eliminar esta posición? Se borrará todo el historial y no se sumará dinero a tu efectivo.</p>
-            </div>
-            <div className="detail-modal-actions">
-              <button 
-                className="modal-cancel-btn"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={isDeleting}
-              >
-                Cancelar
-              </button>
-              <button 
-                className="modal-confirm-btn"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Eliminando...' : 'Eliminar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div 
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <motion.div 
+              className="modal-content glass"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '400px' }}
+            >
+              <div className="modal-header">
+                <div className="modal-title-group">
+                  <h3 className="modal-title" style={{ color: 'var(--color-error)' }}>Eliminar {symbol}</h3>
+                  <p className="modal-subtitle">Esta acción no se puede deshacer</p>
+                </div>
+                <button className="modal-close-btn" onClick={() => setShowDeleteModal(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <p style={{ font: 'var(--font-body-md)', color: 'var(--color-on-surface-variant)', lineHeight: 1.5 }}>
+                  ¿Estás seguro de que querés eliminar esta posición? Se borrará todo el historial y no se sumará dinero a tu efectivo.
+                </p>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  className="modal-cancel-btn"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className="modal-confirm-btn"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     </PageTransition>
   )

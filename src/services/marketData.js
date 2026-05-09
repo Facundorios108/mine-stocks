@@ -12,16 +12,17 @@ const COINGECKO_BASE = 'https://api.coingecko.com/api/v3'
 const FINNHUB_KEY = import.meta.env.VITE_FINNHUB_API_KEY || ''
 
 // ── Persistent Cache (localStorage) ──
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
 function getCachedData(key) {
   try {
     const cached = localStorage.getItem(key);
     if (!cached) return null;
     const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp < CACHE_TTL) {
-      return data;
-    }
-    // Still return stale data if we are rate limited (checked in finnhubFetch)
-    return data; 
+    
+    // Always return data if it exists, but handle freshness in the caller
+    // The user specifically requested showing cached data when limits are reached
+    return data;
   } catch (e) { return null; }
 }
 

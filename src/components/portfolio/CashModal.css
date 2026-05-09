@@ -1,8 +1,11 @@
+.cash-modal-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
 .cash-modal {
   max-width: 400px;
-  width: 90%;
-  padding: var(--space-xl);
-  border-radius: var(--radius-xl);
 }
 
 .cash-balance-summary {
@@ -106,17 +109,25 @@
   font: var(--font-body-sm);
 }
 
-.modal-actions .btn-primary {
+.cash-modal-footer {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--glass-border);
+}
+
+.btn-primary {
   width: 100%;
-  padding: var(--space-md);
+  padding: 14px;
   border-radius: var(--radius-full);
   font: var(--font-title-sm);
   background: var(--gradient-primary);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 109, 61, 0.2);
+  border: none;
+  cursor: pointer;
 }
 
-.modal-actions .btn-primary:disabled {
+.btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

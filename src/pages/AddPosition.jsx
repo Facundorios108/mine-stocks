@@ -122,11 +122,14 @@ export default function AddPosition() {
     const normalizedCost = parseFloat(formData.averageCost) / exchangeRate
     const normalizedCommission = (formData.commission ? parseFloat(formData.commission) : 0) / exchangeRate
 
+    const normalizedSymbol = formData.symbol.trim().toUpperCase()
+    const normalizedName = (formData.name || normalizedSymbol).trim()
+
     const positionData = {
       userId: user.uid,
-      symbol: formData.symbol.toUpperCase(),
-      name: formData.name,
-      assetType: formData.assetType,
+      symbol: normalizedSymbol,
+      name: normalizedName,
+      assetType: formData.assetType || 'stock',
       shares: parseFloat(formData.shares),
       averageCost: normalizedCost,
       commission: normalizedCommission,
@@ -162,49 +165,69 @@ export default function AddPosition() {
           
           showToast('Posición actualizada')
         } else {
-          // Check if position already exists
-          const existing = currentPositions.find(p => p.symbol.trim().toUpperCase() === positionData.symbol.trim().toUpperCase())
+          // Check if position already exists (strict sanitization)
+          const existing = currentPositions.find(p => 
+            p.symbol?.trim().toUpperCase() === normalizedSymbol
+          )
           
           if (existing) {
-            // Merge logic
-            const newShares = existing.shares + positionData.shares
-            const newAvgCost = ((existing.shares * existing.averageCost) + (positionData.shares * positionData.averageCost)) / newShares
+            // Merge logic: Weighted average cost
+            // We include BOTH open and closed positions for merging to avoid duplicates
+            const currentShares = existing.shares || 0
+            const currentAvgCost = existing.averageCost || 0
             
-            const transactions = existing.transactions || [{
-              id: 'initial',
-              type: 'buy',
-              shares: existing.shares,
-              price: existing.averageCost,
-              date: existing.date || new Date().toISOString().split('T')[0],
-              commission: existing.commission || 0,
-              notes: existing.notes || ''
-            }]
+            const newShares = currentShares + positionData.shares
+            const newAvgCost = ((currentShares * currentAvgCost) + (positionData.shares * positionData.averageCost)) / newShares
+            
+            // Ensure we have a transaction history to append to
+            const transactions = [...(existing.transactions || [])]
+            
+            // If no history exists, create initial one from current state before appending new one
+            if (transactions.length === 0 && currentShares > 0) {
+              transactions.push({
+                id: 'initial-' + Date.now(),
+                type: 'buy',
+                shares: currentShares,
+                price: currentAvgCost,
+                date: existing.date || new Date().toISOString().split('T')[0],
+                commission: existing.commission || 0
+              })
+            }
             
             transactions.push(newTransaction)
             
             const mergedData = {
+              ...existing, // Keep original ID and other metadata
               shares: newShares,
               averageCost: newAvgCost,
-              transactions: transactions
+              transactions: transactions,
+              updatedAt: new Date().toISOString()
             }
             
+            // Sync with Firestore (Fire & Forget)
             updatePosition(user.uid, existing.id, mergedData)
             
+            // Robust Optimistic Store Update
             const updatedPositions = currentPositions.map(p => 
-              p.id === existing.id ? { ...p, ...mergedData } : p
+              p.id === existing.id ? mergedData : p
             )
             useAppStore.getState().setPositions(updatedPositions)
             
-            showToast('Compra agregada a la posición existente', 'success')
+            showToast(`Se agregaron ${positionData.shares} shares a ${normalizedSymbol}`, 'success')
           } else {
-            // Create new
-            positionData.transactions = [newTransaction]
-            const newId = await addPosition(user.uid, positionData)
+            // Create new position
+            const newPosWithHistory = {
+              ...positionData,
+              transactions: [newTransaction],
+              createdAt: new Date().toISOString()
+            }
             
-            // Optimistic UI update
-            useAppStore.getState().setPositions([{ id: newId, ...positionData }, ...currentPositions])
+            const newId = await addPosition(user.uid, newPosWithHistory)
             
-            showToast('Posición agregada con éxito', 'success')
+            // Optimistic Store Update
+            useAppStore.getState().setPositions([{ id: newId, ...newPosWithHistory }, ...currentPositions])
+            
+            showToast(`${normalizedSymbol} agregado al portafolio`, 'success')
           }
         }
         haptic.success()

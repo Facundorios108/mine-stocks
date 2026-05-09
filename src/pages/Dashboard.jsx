@@ -101,78 +101,66 @@ export default function Dashboard() {
 
       {/* Balance Hero */}
       <section className="dash-hero" id="portfolio-summary">
-        <div className="dash-hero-card glass">
-          <div className="dash-hero-label">PATRIMONIO NETO</div>
-          <div className="dash-hero-value">
-            <AnimatePresence mode="wait">
-              {!balanceReady ? (
-                <motion.div
-                  key="shimmer-balance"
-                  className="shimmer"
-                  style={{ width: 220, height: 48, borderRadius: 12, margin: '0 auto' }}
-                  {...fadeIn}
-                />
-              ) : (
-                <motion.div key="balance-value" {...fadeIn}>
-                  <AnimatedCounter
-                    value={portfolio.totalValue}
-                    formatter={balanceFormatter}
-                    duration={1}
+        <div className={`dash-hero-card glass ${isGain ? 'gain-bg' : 'loss-bg'}`}>
+          <div className="dash-hero-main">
+            <div className="dash-hero-label">PATRIMONIO NETO</div>
+            <div className="dash-hero-value">
+              <AnimatePresence mode="wait">
+                {!balanceReady ? (
+                  <motion.div
+                    key="shimmer-balance"
+                    className="shimmer"
+                    style={{ width: 220, height: 48, borderRadius: 12 }}
+                    {...fadeIn}
                   />
-                  <span className="dash-hero-currency"> {currency}</span>
+                ) : (
+                  <motion.div key="balance-value" {...fadeIn}>
+                    <AnimatedCounter
+                      value={portfolio.totalValue}
+                      formatter={balanceFormatter}
+                      duration={1}
+                    />
+                    <span className="dash-hero-currency"> {currency}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            
+            <AnimatePresence>
+              {balanceReady && portfolio.positionCount > 0 && (
+                <motion.div className="dash-hero-pnl" {...fadeIn}>
+                  <div className={`dash-pnl-badge ${portfolio.totalPnL >= 0 ? 'gain' : 'loss'}`}>
+                    <div className="pnl-main-info">
+                      {portfolio.totalPnL >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                      <span>{formatPnL(portfolio.totalPnL, currency)}</span>
+                    </div>
+                    <div className="pnl-percent-info">
+                      {portfolio.totalPnL >= 0 ? '+' : ''}{formatPercent(portfolio.totalPnLPercent)}
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-          
-          <AnimatePresence>
-            {balanceReady && portfolio.positionCount > 0 && (
-              <motion.div className="dash-hero-performance" {...fadeIn}>
-                <div className={`dash-performance-item ${portfolio.totalPnL >= 0 ? 'gain' : 'loss'}`}>
-                  <span className="dash-performance-label">Ganancia Total</span>
-                  <div className="dash-performance-value">
-                    {portfolio.totalPnL >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                    <span>{formatPnL(portfolio.totalPnL, currency)}</span>
-                    <small>({formatPercent(portfolio.totalPnLPercent)})</small>
-                  </div>
-                </div>
-
-                <div className="dash-performance-divider" />
-
-                <div className={`dash-performance-item ${portfolio.dailyPnL >= 0 ? 'gain' : 'loss'}`}>
-                  <span className="dash-performance-label">Hoy</span>
-                  <div className="dash-performance-value">
-                    {portfolio.dailyPnL >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                    <span>{formatPnL(portfolio.dailyPnL, currency)}</span>
-                    <small>({formatPercent(portfolio.dailyPnLPercent)})</small>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           <AnimatePresence>
             {balanceReady && (
-              <motion.div className="dash-hero-breakdown" {...fadeIn}>
-                <div className="dash-hero-breakdown-item">
-                  <span className="dash-hero-breakdown-label">Invertido</span>
-                  <span className="dash-hero-breakdown-value">
-                    <AnimatedCounter
-                      value={portfolio.invested}
-                      formatter={balanceFormatter}
-                      duration={1}
-                    />
+              <motion.div className="dash-hero-stats" {...fadeIn}>
+                <div className="dash-stat-item">
+                  <span className="dash-stat-label">Invertido</span>
+                  <span className="dash-stat-value">{formatCurrency(portfolio.invested, currency)}</span>
+                </div>
+                <div className="dash-stat-divider" />
+                <div className="dash-stat-item">
+                  <span className="dash-stat-label">Hoy</span>
+                  <span className={`dash-stat-value ${portfolio.dailyPnL >= 0 ? 'gain' : 'loss'}`}>
+                    {portfolio.dailyPnL >= 0 ? '+' : ''}{formatPercent(portfolio.dailyPnLPercent)}
                   </span>
                 </div>
-                <div className="dash-hero-breakdown-item" style={{ alignItems: 'flex-end' }}>
-                  <span className="dash-hero-breakdown-label">Efectivo</span>
-                  <span className="dash-hero-breakdown-value">
-                    <AnimatedCounter
-                      value={portfolio.cashBalance}
-                      formatter={balanceFormatter}
-                      duration={1}
-                    />
-                  </span>
+                <div className="dash-stat-divider" />
+                <div className="dash-stat-item">
+                  <span className="dash-stat-label">Efectivo</span>
+                  <span className="dash-stat-value">{formatCurrency(portfolio.cashBalance, currency)}</span>
                 </div>
               </motion.div>
             )}
@@ -180,13 +168,13 @@ export default function Dashboard() {
 
           <div className="dash-hero-actions">
             <button 
-              className="dash-btn-cash"
+              className="dash-btn-cash primary"
               onClick={() => { setCashAction('deposit'); setIsCashModalOpen(true) }}
             >
-              <Plus size={16} /> Depositar
+              <Plus size={18} /> Depositar
             </button>
             <button 
-              className="dash-btn-cash"
+              className="dash-btn-cash secondary"
               onClick={() => { setCashAction('withdraw'); setIsCashModalOpen(true) }}
             >
               Retirar
@@ -220,62 +208,62 @@ export default function Dashboard() {
         <AnimatePresence mode="wait">
           {chartLoading ? (
             <motion.div key="chart-shimmer" className="dash-skeleton-chart" {...fadeIn}>
-              <div className="shimmer" style={{ width: '100%', height: 160, borderRadius: 16 }} />
+              <div className="shimmer" style={{ width: '100%', height: 180, borderRadius: 20 }} />
             </motion.div>
           ) : chartData.length > 0 ? (
             <motion.div key="chart-data" {...fadeIn}>
-              <ResponsiveContainer width="100%" height={160}>
-                <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={isGain ? '#4ce08e' : '#ff7671'} stopOpacity={0.3} />
-                      <stop offset="100%" stopColor={isGain ? '#4ce08e' : '#ff7671'} stopOpacity={0.02} />
+                      <stop offset="5%" stopColor={isGain ? '#4ce08e' : '#ff7671'} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={isGain ? '#4ce08e' : '#ff7671'} stopOpacity={0} />
                     </linearGradient>
-                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="4" result="blur" />
+                    <filter id="chartGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
                       <feComposite in="SourceGraphic" in2="blur" operator="over" />
                     </filter>
                   </defs>
-                  <YAxis domain={['dataMin', 'dataMax']} hide />
+                  <YAxis 
+                    domain={[(min) => min * 0.995, (max) => max * 1.005]} 
+                    hide 
+                  />
                   <Tooltip 
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
-                          <div className="dash-chart-tooltip" style={{
-                            background: 'var(--color-surface-container-high)',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            color: 'var(--color-on-surface)',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            boxShadow: 'var(--shadow-md)',
-                            border: '1px solid var(--glass-border)'
-                          }}>
-                            {balanceFormatter(payload[0].value)}
+                          <div className="dash-chart-tooltip glass">
+                            <div className="tooltip-value">{balanceFormatter(payload[0].value)}</div>
+                            <div className="tooltip-date">{payload[0].payload.date}</div>
                           </div>
                         )
                       }
                       return null
                     }}
-                    cursor={{ stroke: isGain ? '#4ce08e' : '#ff7671', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
+                    cursor={{ stroke: isGain ? 'rgba(76, 224, 142, 0.3)' : 'rgba(255, 118, 113, 0.3)', strokeWidth: 2 }}
                   />
                   <Area
                     type="monotone"
                     dataKey="v"
                     stroke={isGain ? '#4ce08e' : '#ff7671'}
-                    strokeWidth={2.5}
+                    strokeWidth={3}
                     fill="url(#chartGrad)"
-                    filter="url(#glow)"
+                    filter="url(#chartGlow)"
                     dot={false}
-                    activeDot={{ r: 5, strokeWidth: 2, stroke: '#131719', fill: isGain ? '#4ce08e' : '#ff7671' }}
-                    animationDuration={800}
+                    activeDot={{ 
+                      r: 6, 
+                      strokeWidth: 3, 
+                      stroke: 'var(--color-surface)', 
+                      fill: isGain ? '#4ce08e' : '#ff7671' 
+                    }}
+                    animationDuration={1000}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </motion.div>
           ) : (
-            <motion.div key="chart-empty" className="dash-chart-empty" {...fadeIn}>
-              <p>No hay datos suficientes para el período seleccionado.</p>
+            <motion.div key="chart-empty" className="dash-chart-empty glass" {...fadeIn}>
+              <p>No hay datos suficientes para el gráfico.</p>
             </motion.div>
           )}
         </AnimatePresence>

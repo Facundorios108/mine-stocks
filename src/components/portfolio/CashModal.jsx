@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowDownCircle, ArrowUpCircle, DollarSign, AlertCircle } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, DollarSign, AlertCircle } from 'lucide-react';
 import useAppStore from '../../store/useAppStore';
 import { updateUserPreferences } from '../../services/firestore';
 import { formatCurrency } from '../../utils/formatters';
+import BottomSheet from '../common/BottomSheet';
 import './CashModal.css';
 
 export default function CashModal({ isOpen, onClose, initialAction = 'deposit' }) {
@@ -18,7 +18,7 @@ export default function CashModal({ isOpen, onClose, initialAction = 'deposit' }
   }, [initialAction]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const numAmount = parseFloat(amount);
 
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -34,7 +34,6 @@ export default function CashModal({ isOpen, onClose, initialAction = 'deposit' }
       exchangeRate = rate?.buy || rate?.sell || 1
     }
 
-    // Amount to update in the USD-based store
     const normalizedAmount = numAmount / exchangeRate
 
     if (action === 'withdraw' && normalizedAmount > cashBalance) {
@@ -50,10 +49,8 @@ export default function CashModal({ isOpen, onClose, initialAction = 'deposit' }
         ? cashBalance + normalizedAmount 
         : cashBalance - normalizedAmount;
 
-      // Update local state first for instant feedback
       setCashBalance(newBalance);
       
-      // Sync with Firestore
       if (user?.uid) {
         await updateUserPreferences(user.uid, { cashBalance: newBalance });
       }
@@ -66,43 +63,34 @@ export default function CashModal({ isOpen, onClose, initialAction = 'deposit' }
     } catch (err) {
       console.error('Error updating cash balance:', err);
       showToast('Error al actualizar el saldo', 'error');
-      // Rollback local state if sync fails significantly? 
-      // For now, let persist handle it.
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <motion.div 
-      className="modal-overlay"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
+    <BottomSheet 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="Gestión de Efectivo"
+      footer={
+        <button 
+          type="submit" 
+          form="cash-form"
+          className="btn-primary" 
+          disabled={isSubmitting || !amount}
+          style={{ width: '100%', margin: 0 }}
+        >
+          {isSubmitting ? 'Procesando...' : 'Confirmar Operación'}
+        </button>
+      }
     >
-      <motion.div 
-        className="modal-content cash-modal glass"
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <div className="modal-title-group">
-            <h2 className="modal-title">Gestión de Efectivo</h2>
-            <p className="modal-subtitle">Actualiza tu poder de compra</p>
-          </div>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X size={24} />
-          </button>
-        </div>
-
+      <div className="cash-modal-inner">
         <div className="cash-balance-summary">
           <span className="summary-label">Saldo Actual</span>
-          <span className="summary-value">{formatCurrency(cashBalance * (currency === 'ARS' ? (useAppStore.getState().dollarRates?.['oficial']?.buy || 1) : 1), currency)}</span>
+          <span className="summary-value">
+            {formatCurrency(cashBalance * (currency === 'ARS' ? (useAppStore.getState().dollarRates?.['oficial']?.buy || 1) : 1), currency)}
+          </span>
         </div>
 
         <div className="cash-tabs">
@@ -122,13 +110,14 @@ export default function CashModal({ isOpen, onClose, initialAction = 'deposit' }
           </button>
         </div>
 
-        <form className="cash-form" onSubmit={handleSubmit}>
+        <form className="cash-form" id="cash-form" onSubmit={handleSubmit}>
           <div className="input-group">
             <label className="input-label">Monto a {action === 'deposit' ? 'depositar' : 'retirar'} ({currency})</label>
             <div className="input-wrapper">
               <DollarSign size={20} className="input-icon" />
               <input
                 type="number"
+                inputMode="decimal"
                 step="0.01"
                 placeholder="0.00"
                 value={amount}
@@ -144,18 +133,8 @@ export default function CashModal({ isOpen, onClose, initialAction = 'deposit' }
               </div>
             )}
           </div>
-
-          <div className="modal-actions">
-            <button 
-              type="submit" 
-              className="btn-primary" 
-              disabled={isSubmitting || !amount}
-            >
-              {isSubmitting ? 'Procesando...' : 'Confirmar Operación'}
-            </button>
-          </div>
         </form>
-      </motion.div>
-    </motion.div>
+      </div>
+    </BottomSheet>
   );
 }

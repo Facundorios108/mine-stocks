@@ -6,6 +6,8 @@ import { formatPrice, formatPercent } from '../../utils/formatters'
 import useAppStore from '../../store/useAppStore'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { haptic } from '../../utils/haptics'
+import { deletePosition } from '../../services/firestore'
+import ConfirmModal from '../common/ConfirmModal'
 import './PositionCard.css'
 
 // Generate a simple sparkline path
@@ -44,40 +46,56 @@ export default function PositionCard({ position, onSellClick }) {
 
   const isClosed = shares <= 0
   const sparklinePath = useMemo(() => generateSparklinePath(isGain), [isGain])
+  const { deletePositionBySymbol } = usePortfolio()
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleOnDelete = async () => {
+    setShowConfirm(false)
+    setIsDeleting(true)
+    haptic.heavy()
+    
+    try {
+      await deletePositionBySymbol(symbol)
+      useAppStore.getState().showToast(`Posición ${symbol} eliminada`)
+    } catch (error) {
+      console.error('Error deleting position:', error)
+      useAppStore.getState().showToast('Error al eliminar la posición', 'error')
+      controls.start({ x: 0 })
+      setIsOpen(false)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const handleDragEnd = (_, info) => {
     const offset = info.offset.x;
     const velocity = info.velocity.x;
     
-    // Deep swipe threshold (e.g., -180px) to trigger action immediately
-    const actionThreshold = -180;
+    // Swipe thresholds for two buttons (80px each = 160px total)
     const swipeOpenThreshold = -40;
+    const fullOpenThreshold = -120;
     
-    if (offset < actionThreshold || velocity < -800) {
-      // Trigger sell immediately on deep swipe
-      haptic.heavy()
-      controls.start({ x: 0 })
-      setIsOpen(false)
-      onSellClick?.()
-    } else if (offset < swipeOpenThreshold || velocity < -400) {
-      // Reveal the sell button
+    if (offset < fullOpenThreshold || velocity < -500) {
+      // Reveal both buttons
       setIsOpen(true)
-      controls.start({ x: -80 })
+      controls.start({ x: -160, transition: { type: 'spring', damping: 20, stiffness: 200 } })
       haptic.medium()
+    } else if (offset < swipeOpenThreshold || velocity < -200) {
+      // Reveal at least one button
+      setIsOpen(true)
+      controls.start({ x: -80, transition: { type: 'spring', damping: 20, stiffness: 200 } })
+      haptic.light()
     } else {
       // Snap back
       setIsOpen(false)
-      controls.start({ x: 0 })
+      controls.start({ x: 0, transition: { type: 'spring', damping: 25, stiffness: 300 } })
     }
   }
 
   return (
     <div className="swipe-container">
       <div className="swipe-action-bg">
-        <div className="swipe-action-content">
-          <DollarSign size={24} />
-          <span>Vender</span>
-        </div>
         <button 
           className="swipe-action-btn sell"
           onClick={(e) => {
@@ -88,8 +106,19 @@ export default function PositionCard({ position, onSellClick }) {
             onSellClick?.()
           }}
         >
-          <DollarSign size={24} />
+          <DollarSign size={22} />
           <span>Vender</span>
+        </button>
+        <button 
+          className="swipe-action-btn delete"
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowConfirm(true)
+          }}
+          disabled={isDeleting}
+        >
+          <TrendingDown size={22} style={{ transform: 'rotate(90deg)' }} />
+          <span>Eliminar</span>
         </button>
       </div>
 
@@ -171,6 +200,20 @@ export default function PositionCard({ position, onSellClick }) {
           )}
         </div>
       </motion.div>
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        onClose={() => {
+          setShowConfirm(false)
+          controls.start({ x: 0 })
+          setIsOpen(false)
+        }}
+        onConfirm={handleOnDelete}
+        title="Eliminar Posición"
+        message={`¿Estás seguro de que quieres eliminar ${symbol}? Se borrarán todas las transacciones asociadas y no quedará registro.`}
+        confirmText="Eliminar todo"
+        type="danger"
+      />
     </div>
   )
 }
