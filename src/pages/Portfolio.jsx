@@ -141,7 +141,7 @@ export default function Portfolio() {
             {isLoading ? (
               <div className="shimmer" style={{ width: 100, height: 24, borderRadius: 4 }} />
             ) : (
-              formatCurrency(portfolio.totalCost, currency)
+              formatCurrency(portfolio.invested, currency)
             )}
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function Portfolio() {
                     key="active-state"
                   >
                     <span style={{ fontSize: '1.2rem', color: COLORS[activeIndex % COLORS.length] }}>
-                      {formatPercent((donutData[activeIndex].value / portfolio.totalInvested) * 100)}
+                      {formatPercent((donutData[activeIndex].value / portfolio.marketValue) * 100)}
                     </span>
                     <small>{donutData[activeIndex].name}</small>
                   </motion.div>
@@ -246,7 +246,7 @@ export default function Portfolio() {
                   <div className="legend-color" style={{ background: COLORS[idx % COLORS.length] }} />
                   <div className="legend-name">{item.name}</div>
                   <div className="legend-pct">
-                    {formatPercent((item.value / portfolio.totalInvested) * 100)}
+                    {formatPercent((item.value / portfolio.marketValue) * 100)}
                   </div>
                 </div>
               ))}
@@ -260,26 +260,32 @@ export default function Portfolio() {
         <h2 className="portfolio-section-title">Todas las Posiciones</h2>
         
         <div className="portfolio-filters">
-          <div className="portfolio-search-box">
+          <div className="portfolio-search-box glass">
             <Search size={16} />
             <input 
               type="text" 
-              placeholder="Filtrar por ticker..." 
+              placeholder="Buscar ticker..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="portfolio-sort-box">
-            <select 
-              value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="performance">Rendimiento (%)</option>
-              <option value="gain">Ganancia ($)</option>
-              <option value="value">Valor Total</option>
-              <option value="date">Fecha de compra</option>
-              <option value="symbol">Símbolo (A-Z)</option>
-            </select>
+          
+          <div className="portfolio-sort-scroll">
+            {[
+              { id: 'performance', label: 'Rendimiento' },
+              { id: 'gain', label: 'Ganancia' },
+              { id: 'value', label: 'Valor' },
+              { id: 'date', label: 'Fecha' },
+              { id: 'symbol', label: 'Ticker' }
+            ].map(opt => (
+              <button
+                key={opt.id}
+                className={`sort-chip ${sortBy === opt.id ? 'active' : ''}`}
+                onClick={() => setSortBy(opt.id)}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
         

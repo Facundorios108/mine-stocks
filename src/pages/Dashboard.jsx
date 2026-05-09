@@ -45,12 +45,14 @@ export default function Dashboard() {
 
   const portfolio = getPortfolioValue()
   const enrichedPositions = useMemo(() => {
-    return getEnrichedPositions().sort((a, b) => {
-      // Sort by date (newest first)
-      const timeA = a.createdAt?.seconds || new Date(a.date || 0).getTime() / 1000
-      const timeB = b.createdAt?.seconds || new Date(b.date || 0).getTime() / 1000
-      return timeB - timeA
-    })
+    return getEnrichedPositions()
+      .filter(p => p.shares > 0)
+      .sort((a, b) => {
+        // Sort by date (newest first)
+        const timeA = a.createdAt?.seconds || new Date(a.date || 0).getTime() / 1000
+        const timeB = b.createdAt?.seconds || new Date(b.date || 0).getTime() / 1000
+        return timeB - timeA
+      })
   }, [getEnrichedPositions])
   const isGain = portfolio.totalPnL >= 0
   const balanceReady = !isLoading && !quotesLoading
@@ -101,7 +103,7 @@ export default function Dashboard() {
       {/* Balance Hero */}
       <section className="dash-hero" id="portfolio-summary">
         <div className="dash-hero-card glass">
-          <div className="dash-hero-label">TOTAL BALANCE</div>
+          <div className="dash-hero-label">PATRIMONIO NETO</div>
           <div className="dash-hero-value">
             <AnimatePresence mode="wait">
               {!balanceReady ? (
@@ -122,7 +124,9 @@ export default function Dashboard() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>          <AnimatePresence>
+          </div>
+          
+          <AnimatePresence>
             {balanceReady && portfolio.positionCount > 0 && (
               <motion.div className="dash-hero-performance" {...fadeIn}>
                 <div className={`dash-performance-item ${portfolio.totalPnL >= 0 ? 'gain' : 'loss'}`}>
@@ -155,14 +159,14 @@ export default function Dashboard() {
                   <span className="dash-hero-breakdown-label">Invertido</span>
                   <span className="dash-hero-breakdown-value">
                     <AnimatedCounter
-                      value={portfolio.totalCost}
+                      value={portfolio.invested}
                       formatter={balanceFormatter}
                       duration={1}
                     />
                   </span>
                 </div>
                 <div className="dash-hero-breakdown-item" style={{ alignItems: 'flex-end' }}>
-                  <span className="dash-hero-breakdown-label">Poder de compra</span>
+                  <span className="dash-hero-breakdown-label">Efectivo</span>
                   <span className="dash-hero-breakdown-value">
                     <AnimatedCounter
                       value={portfolio.cashBalance}

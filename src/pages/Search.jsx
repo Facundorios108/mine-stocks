@@ -67,6 +67,8 @@ export default function Search() {
 
   const firstName = user?.displayName?.split(' ')[0] || 'Inversor'
 
+  const [isRateLimited, setIsRateLimited] = useState(false)
+
   // Fetch Trending & Category real quotes
   useEffect(() => {
     let mounted = true
@@ -74,6 +76,7 @@ export default function Search() {
     const fetchCategory = async () => {
       setLoadingCategory(true)
       setLoadingTrending(true)
+      setIsRateLimited(false)
       
       try {
         const categorySymbols = CAT_SYMBOLS[activeCategory]
@@ -82,10 +85,16 @@ export default function Search() {
         
         if (!mounted) return
 
+        // Check if any quote failed (indicates rate limit or error)
+        const allFailed = allSymbols.every(s => !quotes[s] || quotes[s].c === 0)
+        if (allFailed) {
+           setIsRateLimited(true)
+        }
+
         // Format Trending
         const trending = TRENDING_SYMBOLS.map(sym => {
           const q = quotes[sym]
-          if (!q) return null
+          if (!q || q.c === 0) return null
           return {
             symbol: sym,
             name: TRENDING_NAMES[sym],
@@ -95,12 +104,13 @@ export default function Search() {
             isGain: (q.dp || 0) >= 0
           }
         }).filter(Boolean)
-        setTrendingData(trending)
+        
+        if (trending.length > 0) setTrendingData(trending)
 
         // Format Category
         const formatted = categorySymbols.map(sym => {
           const q = quotes[sym]
-          if (!q) return null
+          if (!q || q.c === 0) return null
             return {
               symbol: sym,
               name: SYMBOL_NAMES[sym] || sym,
@@ -111,18 +121,19 @@ export default function Search() {
             }
         }).filter(Boolean)
         
-        setCategoryData(formatted)
+        if (formatted.length > 0) setCategoryData(formatted)
 
         // Update Global Cache
         setSearchCache({
-          trending: trending,
+          trending: trending.length > 0 ? trending : trendingData,
           categories: {
             ...searchCache.categories,
-            [activeCategory]: formatted
+            [activeCategory]: formatted.length > 0 ? formatted : categoryData
           }
         })
       } catch (e) {
         console.error('Error fetching category quotes', e)
+        setIsRateLimited(true)
         // If error, ensure we have at least cached data
         if (trendingData.length === 0 && searchCache.trending) {
           setTrendingData(searchCache.trending)
@@ -195,6 +206,22 @@ export default function Search() {
           id="input-search"
         />
       </div>
+
+      {/* Rate Limit Notice */}
+      <AnimatePresence>
+        {isRateLimited && (
+          <motion.div 
+            className="rate-limit-notice"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            <div className="rate-limit-badge">
+              Usando datos en caché (Límite de API alcanzado)
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Categories */}
       {showDefault && (

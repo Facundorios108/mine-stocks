@@ -11,6 +11,22 @@ const COINGECKO_BASE = 'https://api.coingecko.com/api/v3'
 // Users should set their own key
 const FINNHUB_KEY = import.meta.env.VITE_FINNHUB_API_KEY || ''
 
+// ── Simple In-Memory Cache ──
+const apiCache = new Map();
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+function getCachedData(key) {
+  const cached = apiCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedData(key, data) {
+  apiCache.set(key, { data, timestamp: Date.now() });
+}
+
 // ── Rate Limiter ──
 class RateLimiter {
   constructor(maxRequests, windowMs) {
@@ -39,19 +55,43 @@ const finnhubLimiter = new RateLimiter(55, 60000) // 55 req/min (5 buffer)
 // ── Finnhub API ──
 
 async function finnhubFetch(endpoint, params = {}) {
-  await finnhubLimiter.waitForSlot()
+  const cacheKey = `finnhub:${endpoint}:${JSON.stringify(params)}`;
+  
+  try {
+    await finnhubLimiter.waitForSlot()
 
-  const url = new URL(`${FINNHUB_BASE}${endpoint}`)
-  url.searchParams.set('token', FINNHUB_KEY)
-  Object.entries(params).forEach(([key, val]) => {
-    url.searchParams.set(key, val)
-  })
+    const url = new URL(`${FINNHUB_BASE}${endpoint}`)
+    url.searchParams.set('token', FINNHUB_KEY)
+    Object.entries(params).forEach(([key, val]) => {
+      url.searchParams.set(key, val)
+    })
 
-  const response = await fetch(url.toString())
-  if (!response.ok) {
-    throw new Error(`Finnhub API error: ${response.status}`)
+    const response = await fetch(url.toString())
+    
+    if (response.status === 429) {
+      const cached = getCachedData(cacheKey);
+      if (cached) {
+        console.warn(`Finnhub rate limit (429) for ${endpoint}. Using cached data.`);
+        return cached;
+      }
+      throw new Error('RATE_LIMIT');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Finnhub API error: ${response.status}`)
+    }
+
+    const data = await response.json();
+    setCachedData(cacheKey, data);
+    return data;
+  } catch (error) {
+    const cached = getCachedData(cacheKey);
+    if (cached) {
+      console.warn(`Finnhub fetch failed for ${endpoint}. Using cached data.`, error.message);
+      return cached;
+    }
+    throw error;
   }
-  return response.json()
 }
 
 /**

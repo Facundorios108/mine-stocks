@@ -99,8 +99,8 @@ export function usePortfolio() {
 
   // Calculate portfolio metrics
   const getPortfolioValue = useCallback(() => {
-    let totalCostBasis = 0; // The actual money invested (USD)
-    let totalMarketValue = 0; // The current market value of open positions (USD)
+    let totalCostBasis = 0; // Actual money invested in current open positions (USD)
+    let totalMarketValue = 0; // Current market value of open positions (USD)
     let totalRealizedPnL = 0;
     let totalRealizedCost = 0;
 
@@ -118,6 +118,7 @@ export function usePortfolio() {
       if (pos.transactions) {
         pos.transactions.forEach(t => {
           if (t.type === 'sell') {
+            // Use historical average cost if available, otherwise fallback
             const costAtSale = t.averageCostAtSale || pos.averageCost || t.price
             const pnl = t.shares * (t.price - costAtSale)
             totalRealizedPnL += pnl
@@ -135,13 +136,15 @@ export function usePortfolio() {
       }
     })
 
-    // Total PnL = Unrealized PnL (Market Value - Cost Basis) + Realized PnL
+    // Unrealized PnL = Current Market Value - Cost Basis
     const unrealizedPnL = totalMarketValue - totalCostBasis
+    // Total PnL = Unrealized + Realized
     const totalPnL = unrealizedPnL + totalRealizedPnL
     
-    // PnL % based on total capital assigned to these positions (active + realized)
-    const denominator = totalCostBasis + totalRealizedCost
-    const totalPnLPercent = denominator > 0 ? (totalPnL / denominator) * 100 : 0
+    // Calculate PnL % based on total capital used (active cost + historical sold cost)
+    // This gives a true representation of portfolio performance over time
+    const totalCapitalUsed = totalCostBasis + totalRealizedCost
+    const totalPnLPercent = totalCapitalUsed > 0 ? (totalPnL / totalCapitalUsed) * 100 : 0
     
     const netWorth = totalMarketValue + cashBalance
 
@@ -152,10 +155,10 @@ export function usePortfolio() {
       exchangeRate = rate?.buy || rate?.sell || 1
     }
 
-    const displayInvestedMarketValue = totalMarketValue * exchangeRate
+    const displayMarketValue = totalMarketValue * exchangeRate
     const displayCash = cashBalance * exchangeRate
     const displayNetWorth = netWorth * exchangeRate
-    const displayCostBasis = totalCostBasis * exchangeRate
+    const displayInvested = totalCostBasis * exchangeRate
     const displayPnL = totalPnL * exchangeRate
     const displayDailyPnL = dailyPnL * exchangeRate
     
@@ -166,10 +169,9 @@ export function usePortfolio() {
     return {
       netWorth: displayNetWorth,
       totalValue: displayNetWorth, 
-      totalInvestedMarketValue: displayInvestedMarketValue,
-      totalInvested: displayInvestedMarketValue,
+      marketValue: displayMarketValue,
+      invested: displayInvested, // This is what the user actually spent
       cashBalance: displayCash,
-      totalCost: displayCostBasis, // This is "Invertido"
       totalPnL: displayPnL,
       totalPnLPercent,
       dailyPnL: displayDailyPnL,

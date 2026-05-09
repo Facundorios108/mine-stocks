@@ -111,61 +111,61 @@ export default function PositionCard({ position, onSellClick }) {
         role="button"
         tabIndex={0}
       >
-      {/* Avatar */}
-      <div className="position-avatar">
-        <span>{symbol?.slice(0, 1)}</span>
-      </div>
-
-      {/* Info */}
-      <div className="position-info">
-        <div className="position-symbol-row">
-          <span className="position-symbol">{symbol}</span>
-          {isClosed && <span className="closed-badge">Cerrada</span>}
+        {/* Avatar */}
+        <div className="position-avatar">
+          <span>{symbol?.slice(0, 1)}</span>
         </div>
-        <div className="position-name">{name || symbol}</div>
-        <div className="position-invested">
-          Invertido: {formatPrice(cost, currency)}
-        </div>
-      </div>
 
-      {/* Sparkline */}
-      <div className="position-sparkline">
-        {quoteLoaded && !isClosed ? (
-          <svg width="60" height="28" viewBox="0 0 60 28" fill="none">
-            <path
-              d={sparklinePath}
-              stroke={isGain ? 'var(--color-gain)' : 'var(--color-loss)'}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
-        ) : quoteLoaded && isClosed ? (
-          <div className="closed-status">HISTORIAL</div>
-        ) : (
-          <div className="shimmer" style={{ width: 60, height: 28, borderRadius: 6 }} />
-        )}
-      </div>
-
-      {/* Price & Change */}
-      <div className="position-right">
-        {quoteLoaded ? (
-          <>
-            <div className="position-price">
-              {isClosed ? '0.00' : formatPrice(currentPrice, currency)}
-            </div>
-            <div className={`position-change ${isGain ? 'gain' : 'loss'}`}>
-              {formatPercent(pnlPercent)}
-            </div>
-          </>
-        ) : (
-          <div className="position-loading">
-            <div className="shimmer" style={{ width: 70, height: 16, marginBottom: 4 }} />
-            <div className="shimmer" style={{ width: 50, height: 14 }} />
+        {/* Info */}
+        <div className="position-info">
+          <div className="position-symbol-row">
+            <span className="position-symbol">{symbol}</span>
+            {isClosed && <span className="closed-badge">Cerrada</span>}
           </div>
-        )}
-      </div>
+          <div className="position-name">{name || symbol}</div>
+          <div className="position-invested">
+            Invertido: {formatPrice(cost, currency)}
+          </div>
+        </div>
+
+        {/* Sparkline */}
+        <div className="position-sparkline">
+          {quoteLoaded && !isClosed ? (
+            <svg width="60" height="28" viewBox="0 0 60 28" fill="none">
+              <path
+                d={sparklinePath}
+                stroke={isGain ? 'var(--color-gain)' : 'var(--color-loss)'}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+          ) : quoteLoaded && isClosed ? (
+            <div className="closed-status">HISTORIAL</div>
+          ) : (
+            <div className="shimmer" style={{ width: 60, height: 28, borderRadius: 6 }} />
+          )}
+        </div>
+
+        {/* Price & Change */}
+        <div className="position-right">
+          {quoteLoaded ? (
+            <>
+              <div className="position-price">
+                {isClosed ? '0.00' : formatPrice(currentPrice, currency)}
+              </div>
+              <div className={`position-change ${isGain ? 'gain' : 'loss'}`}>
+                {formatPercent(pnlPercent)}
+              </div>
+            </>
+          ) : (
+            <div className="position-loading">
+              <div className="shimmer" style={{ width: 70, height: 16, marginBottom: 4 }} />
+              <div className="shimmer" style={{ width: 50, height: 14 }} />
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   )
