@@ -73,23 +73,23 @@ export default function PositionCard({ position, onSellClick }) {
     const velocity = info.velocity.x;
     
     // Swipe thresholds for two buttons (80px each = 160px total)
-    const swipeOpenThreshold = -40;
-    const fullOpenThreshold = -120;
+    const revealFirstThreshold = -30;
+    const revealBothThreshold = -100;
     
-    if (offset < fullOpenThreshold || velocity < -500) {
+    if (offset < revealBothThreshold || velocity < -400) {
       // Reveal both buttons
       setIsOpen(true)
-      controls.start({ x: -160, transition: { type: 'spring', damping: 20, stiffness: 200 } })
+      controls.start({ x: -160, transition: { type: 'spring', damping: 25, stiffness: 300 } })
       haptic.medium()
-    } else if (offset < swipeOpenThreshold || velocity < -200) {
+    } else if (offset < revealFirstThreshold || velocity < -150) {
       // Reveal at least one button
       setIsOpen(true)
-      controls.start({ x: -80, transition: { type: 'spring', damping: 20, stiffness: 200 } })
+      controls.start({ x: -80, transition: { type: 'spring', damping: 25, stiffness: 300 } })
       haptic.light()
     } else {
       // Snap back
       setIsOpen(false)
-      controls.start({ x: 0, transition: { type: 'spring', damping: 25, stiffness: 300 } })
+      controls.start({ x: 0, transition: { type: 'spring', damping: 30, stiffness: 400 } })
     }
   }
 
@@ -125,8 +125,8 @@ export default function PositionCard({ position, onSellClick }) {
       <motion.div
         className={`position-card ${isClosed ? 'closed' : ''}`}
         drag="x"
-        dragConstraints={{ right: 0, left: -200 }}
-        dragElastic={0.1}
+        dragConstraints={{ right: 0, left: -160 }}
+        dragElastic={0.05}
         animate={controls}
         onDragEnd={handleDragEnd}
         onClick={(e) => {

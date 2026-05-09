@@ -225,7 +225,16 @@ export default function Dashboard() {
                     </filter>
                   </defs>
                   <YAxis 
-                    domain={[(min) => min * 0.995, (max) => max * 1.005]} 
+                    domain={[
+                      (dataMin) => {
+                        const padding = dataMin * 0.01;
+                        return Math.max(0, dataMin - padding);
+                      },
+                      (dataMax) => {
+                        const padding = dataMax * 0.01;
+                        return dataMax + padding;
+                      }
+                    ]} 
                     hide 
                   />
                   <Tooltip 
@@ -240,23 +249,24 @@ export default function Dashboard() {
                       }
                       return null
                     }}
-                    cursor={{ stroke: isGain ? 'rgba(76, 224, 142, 0.3)' : 'rgba(255, 118, 113, 0.3)', strokeWidth: 2 }}
+                    cursor={{ stroke: isGain ? '#4ce08e' : '#ff7671', strokeWidth: 1.5, strokeDasharray: '4 4' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="v"
                     stroke={isGain ? '#4ce08e' : '#ff7671'}
-                    strokeWidth={3}
+                    strokeWidth={4}
                     fill="url(#chartGrad)"
                     filter="url(#chartGlow)"
                     dot={false}
                     activeDot={{ 
                       r: 6, 
                       strokeWidth: 3, 
-                      stroke: 'var(--color-surface)', 
+                      stroke: '#121212', 
                       fill: isGain ? '#4ce08e' : '#ff7671' 
                     }}
-                    animationDuration={1000}
+                    animationDuration={1500}
+                    animationEasing="ease-in-out"
                   />
                 </AreaChart>
               </ResponsiveContainer>

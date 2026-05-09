@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DollarSign, PieChart, Info, AlertCircle } from 'lucide-react'
+import { DollarSign, PieChart, Info, AlertCircle, ArrowUpRight, Wallet } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { formatCurrency, formatPrice } from '../../utils/formatters'
 import useAppStore from '../../store/useAppStore'
@@ -100,36 +100,68 @@ export default function SellModal({ isOpen, onClose, position, onSold }) {
       title={`Vender ${position?.symbol}`}
       footer={
         <button 
-          className={`sell-action-btn ${isInvalid ? 'disabled' : ''}`}
+          className={`sell-confirm-btn ${isInvalid ? 'disabled' : ''}`}
           disabled={isInvalid || isSelling}
           onClick={handleSell}
-          style={{ width: '100%', margin: 0 }}
         >
-          {isSelling ? 'Procesando...' : 'Confirmar Venta'}
+          {isSelling ? (
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+              style={{ display: 'flex' }}
+            >
+              <ArrowUpRight size={20} />
+            </motion.div>
+          ) : (
+            <>
+              Confirmar Venta
+              <ArrowUpRight size={20} />
+            </>
+          )}
         </button>
       }
     >
       <div className="sell-modal-inner">
-        <div className="sell-summary-cards">
-          <div className="sell-summary-card">
-            <span className="card-label">Disponibles</span>
-            <span className="card-value">{position?.shares?.toLocaleString()}</span>
+        {/* Asset Header Card */}
+        <div className="sell-asset-card">
+          <div className="asset-info-main">
+            <div className="asset-badge">
+              <PieChart size={24} />
+            </div>
+            <div className="asset-details">
+              <span className="asset-symbol">{position?.symbol}</span>
+              <span className="asset-name">{position?.name || 'Asset'}</span>
+            </div>
           </div>
-          <div className="sell-summary-card">
-            <span className="card-label">Precio Mercado</span>
-            <span className="card-value">{formatPrice(position?.currentPrice, currency)}</span>
+          <div className="asset-stats">
+            <div className="stat-item">
+              <span className="stat-label">Disponibles</span>
+              <span className="stat-value">{position?.shares?.toLocaleString()}</span>
+            </div>
+            <div className="stat-divider" />
+            <div className="stat-item">
+              <span className="stat-label">Precio Mercado</span>
+              <span className="stat-value">{formatPrice(position?.currentPriceUsd * currentExchangeRate, currency)}</span>
+            </div>
           </div>
         </div>
 
-        <div className="sell-input-section">
-          <div className="sell-input-group">
-            <div className="input-label-row">
-              <label>Cantidad a vender</label>
-              <button className="max-link" onClick={() => setSharesToSell(position.shares)}>
+        <div className="sell-form-grid">
+          {/* Shares Input */}
+          <div className="input-premium-group">
+            <div className="input-header-row">
+              <label className="input-premium-label">Cantidad a vender</label>
+              <button 
+                className="max-action-link" 
+                onClick={() => {
+                  haptic.light();
+                  setSharesToSell(position.shares);
+                }}
+              >
                 Vender todo
               </button>
             </div>
-            <div className="premium-input-wrapper">
+            <div className={`input-premium-wrapper ${sharesToSell > position?.shares ? 'has-error' : ''}`}>
               <input 
                 type="number" 
                 inputMode="decimal"
@@ -137,24 +169,25 @@ export default function SellModal({ isOpen, onClose, position, onSold }) {
                 onChange={e => setSharesToSell(Number(e.target.value))}
                 placeholder="0.00"
               />
-              <span className="input-suffix">Shares</span>
+              <span className="input-premium-unit">Shares</span>
             </div>
             {sharesToSell > position?.shares && (
               <motion.div 
-                className="input-error"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                className="error-bubble"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
               >
                 <AlertCircle size={14} />
-                <span>Excede el máximo disponible</span>
+                <span>Supera tu tenencia actual</span>
               </motion.div>
             )}
           </div>
 
-          <div className="sell-input-group">
-            <label>Precio de Venta ({currency})</label>
-            <div className="premium-input-wrapper">
-              <DollarSign size={18} className="input-icon" />
+          {/* Price Input */}
+          <div className="input-premium-group">
+            <label className="input-premium-label">Precio de Venta ({currency})</label>
+            <div className="input-premium-wrapper">
+              <span className="currency-prefix">{currency === 'USD' ? '$' : 'AR$'}</span>
               <input 
                 type="number" 
                 inputMode="decimal"
@@ -166,14 +199,20 @@ export default function SellModal({ isOpen, onClose, position, onSold }) {
           </div>
         </div>
 
-        <div className="sell-total-preview">
-          <div className="preview-content">
-            <span className="preview-label">Recibirás estimado</span>
-            <span className="preview-value">{formatCurrency(totalCreditPreviewUsd, 'USD')}</span>
+        {/* Credit Summary */}
+        <div className="sell-credit-card">
+          <div className="credit-main">
+            <div className="credit-label">
+              <Wallet size={16} />
+              Recibirás estimado
+            </div>
+            <div className="credit-amount">
+              {formatCurrency(totalCreditPreviewUsd, 'USD')}
+            </div>
           </div>
-          <div className="preview-info">
+          <div className="credit-note">
             <Info size={14} />
-            <span>El monto se sumará a tu poder de compra (USD).</span>
+            <span>Se acreditará en tu saldo en USD</span>
           </div>
         </div>
       </div>

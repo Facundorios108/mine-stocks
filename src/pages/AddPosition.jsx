@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Search as SearchIcon, Check } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { searchAssets } from '../services/marketData'
 import { addPosition, updatePosition } from '../services/firestore'
 import { haptic } from '../utils/haptics'
@@ -173,11 +174,14 @@ export default function AddPosition() {
           if (existing) {
             // Merge logic: Weighted average cost
             // We include BOTH open and closed positions for merging to avoid duplicates
-            const currentShares = existing.shares || 0
-            const currentAvgCost = existing.averageCost || 0
+            const currentShares = parseFloat(existing.shares) || 0
+            const currentAvgCost = parseFloat(existing.averageCost) || 0
             
             const newShares = currentShares + positionData.shares
-            const newAvgCost = ((currentShares * currentAvgCost) + (positionData.shares * positionData.averageCost)) / newShares
+            // If currentShares is 0, the newAvgCost is just the new cost
+            const newAvgCost = currentShares > 0 
+              ? ((currentShares * currentAvgCost) + (positionData.shares * positionData.averageCost)) / newShares
+              : positionData.averageCost
             
             // Ensure we have a transaction history to append to
             const transactions = [...(existing.transactions || [])]
@@ -287,7 +291,9 @@ export default function AddPosition() {
           ) : results.length > 0 ? (
             <div className="add-results">
               {results.map(r => {
-                const inPortfolio = getEnrichedPositions().some(p => p.symbol === r.symbol && p.shares > 0);
+                const inPortfolio = getEnrichedPositions().some(p => 
+                  p.symbol?.trim().toUpperCase() === r.symbol?.trim().toUpperCase() && p.shares > 0
+                );
                 return (
                   <button key={r.symbol} className="add-result-item" onClick={() => selectAsset(r)}>
                     <div className="add-result-avatar">
@@ -339,7 +345,8 @@ export default function AddPosition() {
           {/* Existing Position Warning/Info */}
           {!editId && (() => {
             const currentPositions = useAppStore.getState().positions
-            const existing = currentPositions.find(p => p.symbol === formData.symbol.toUpperCase())
+            const normalizedFormSymbol = formData.symbol?.trim().toUpperCase()
+            const existing = currentPositions.find(p => p.symbol?.trim().toUpperCase() === normalizedFormSymbol)
             if (!existing) return null
             
             let exchangeRate = 1

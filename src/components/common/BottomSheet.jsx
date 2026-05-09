@@ -9,15 +9,17 @@ export default function BottomSheet({ isOpen, onClose, children, title, footer }
       const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = 'hidden';
       document.body.style.paddingRight = `${scrollBarWidth}px`;
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
+      
+      // Prevent touchmove on body when sheet is open (iOS fix)
+      const preventDefault = (e) => e.preventDefault();
+      document.addEventListener('touchmove', preventDefault, { passive: false });
+      
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        document.removeEventListener('touchmove', preventDefault);
+      };
     }
-    
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-    };
   }, [isOpen]);
 
   return (

@@ -1,192 +1,187 @@
 .sell-modal-inner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 24px;
 }
 
-.sell-modal {
-  max-width: 440px;
+.sell-asset-card {
+  background: var(--color-surface-container-high);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.modal-title-row {
+.asset-info-main {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.symbol-badge {
-  background: var(--gradient-primary);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 8px;
-  font: var(--font-label-lg);
-  font-weight: 700;
-}
-
-.sell-summary-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-.sell-summary-card {
-  padding: var(--space-md);
-  background: var(--color-surface-container-lowest);
+.asset-badge {
+  width: 52px;
+  height: 52px;
+  background: var(--gradient-primary-soft);
   border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-primary-container);
+  box-shadow: var(--shadow-sm);
+}
+
+.asset-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.asset-symbol {
+  font: var(--font-title-lg);
+  font-weight: 800;
+  color: var(--color-on-surface);
+  letter-spacing: -0.5px;
+}
+
+.asset-name {
+  font: var(--font-label-md);
+  color: var(--color-on-surface-variant);
+}
+
+.asset-stats {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.stat-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border: 1px solid var(--glass-border);
+  padding: 0 12px;
 }
 
-.card-label {
+.stat-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stat-label {
   font: var(--font-label-sm);
   color: var(--color-on-surface-variant);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.card-value {
-  font: var(--font-title-md);
-  color: var(--color-on-surface);
-}
-
-.sell-input-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-xl);
-}
-
-.sell-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.input-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.input-label-row label {
-  font: var(--font-label-lg);
-  color: var(--color-on-surface);
-}
-
-.max-link {
+.stat-value {
   font: var(--font-label-md);
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.sell-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Reusing common premium input styles */
+.input-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.max-action-link {
+  background: transparent;
+  border: none;
   color: var(--color-primary);
+  font: var(--font-label-md);
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.max-action-link:active {
+  background: rgba(0, 184, 107, 0.1);
+}
+
+.input-premium-unit {
+  font: var(--font-label-md);
+  color: var(--color-on-surface-variant);
   font-weight: 600;
 }
 
-.premium-input-wrapper {
-  position: relative;
+.sell-credit-card {
+  background: rgba(0, 184, 107, 0.08);
+  border: 1px dashed var(--color-primary);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.credit-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.credit-label {
   display: flex;
   align-items: center;
-  background: var(--color-surface-container-highest);
-  border-radius: 16px;
-  padding: 0 var(--space-md);
-  border: 1px solid transparent;
-  transition: all 0.2s;
-}
-
-.premium-input-wrapper:focus-within {
-  border-color: var(--color-primary);
-  background: var(--color-surface-container-high);
-  box-shadow: 0 0 0 4px rgba(0, 184, 107, 0.1);
-}
-
-.premium-input-wrapper input {
-  flex: 1;
-  height: 56px;
-  background: transparent;
-  border: none;
-  font: var(--font-title-lg);
-  color: var(--color-on-surface);
-  outline: none;
-}
-
-.input-icon {
-  margin-right: var(--space-xs);
-  color: var(--color-on-surface-variant);
-}
-
-.input-suffix {
+  gap: 8px;
   font: var(--font-label-md);
   color: var(--color-on-surface-variant);
 }
 
-.input-error {
+.credit-amount {
+  font: var(--font-title-lg);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.credit-note {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--color-loss);
-  font: var(--font-body-sm);
-  margin-top: 4px;
-}
-
-.sell-total-preview {
-  padding: var(--space-lg);
-  background: rgba(0, 184, 107, 0.05);
-  border-radius: 20px;
-  border: 1px dashed rgba(0, 184, 107, 0.3);
-}
-
-.preview-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-sm);
-}
-
-.preview-label {
-  font: var(--font-body-md);
-  color: var(--color-on-surface-variant);
-}
-
-.preview-value {
-  font: var(--font-title-lg);
-  color: var(--color-gain);
-  font-weight: 700;
-}
-
-.preview-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: var(--font-body-xs);
+  font: var(--font-label-sm);
   color: var(--color-on-surface-variant);
   opacity: 0.8;
 }
 
-.sell-modal-footer {
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--glass-border);
-}
-
-.sell-action-btn {
+.sell-confirm-btn {
   width: 100%;
-  height: 56px;
-  border-radius: var(--radius-full);
-  background: var(--gradient-primary);
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: 16px;
+  padding: 16px;
   font: var(--font-title-md);
   font-weight: 700;
-  box-shadow: 0 8px 24px rgba(0, 184, 107, 0.3);
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 184, 107, 0.25);
+  transition: all 0.2s ease;
 }
 
-.sell-action-btn:active:not(:disabled) {
+.sell-confirm-btn:active {
   transform: scale(0.98);
+  box-shadow: 0 4px 12px rgba(0, 184, 107, 0.2);
 }
 
-.sell-action-btn:disabled {
-  opacity: 0.5;
-  filter: grayscale(1);
+.sell-confirm-btn.disabled {
+  background: var(--color-surface-container-highest);
+  color: var(--color-on-surface-variant);
   box-shadow: none;
+  opacity: 0.5;
+  pointer-events: none;
 }

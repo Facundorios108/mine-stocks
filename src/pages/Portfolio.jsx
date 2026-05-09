@@ -26,7 +26,7 @@ export default function Portfolio() {
 
   const portfolio = getPortfolioValue()
   const positions = useMemo(() => {
-    let filtered = getEnrichedPositions()
+    let filtered = getEnrichedPositions().filter(p => p.shares > 0)
 
     // 1. Filter by search query (symbol)
     if (searchQuery) {
