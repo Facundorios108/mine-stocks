@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { LogOut, User as UserIcon, Settings, Shield, Bell, DollarSign, ChevronRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { logout } from '../services/auth'
 import useAppStore from '../store/useAppStore'
 import { haptic } from '../utils/haptics'
 import PageTransition from '../components/common/PageTransition'
 import './Profile.css'
 
 export default function Profile() {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const { currency, toggleCurrency } = useAppStore()
 
   const handleLogout = async () => {
     haptic.light()
     try {
-      await signOut()
+      await logout()
     } catch (error) {
       haptic.error()
       console.error(error)
@@ -34,7 +35,12 @@ export default function Profile() {
       <section className="profile-hero">
         <div className="profile-avatar">
           {user?.photoURL ? (
-            <img src={user.photoURL} alt="" />
+            <img 
+              src={user.photoURL} 
+              alt="" 
+              loading="lazy"
+              onLoad={(e) => e.target.classList.add('loaded')}
+            />
           ) : (
             <UserIcon size={32} />
           )}

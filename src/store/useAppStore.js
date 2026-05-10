@@ -13,11 +13,13 @@ const useAppStore = create(
       // Currency
       currency: 'USD', // 'USD' | 'ARS'
       dollarRates: null,
+      dollarType: 'oficial', // preferred dollar rate type: 'blue' | 'oficial' | 'bolsa' | 'contadoconliqui'
       toggleCurrency: () => set((state) => ({
         currency: state.currency === 'USD' ? 'ARS' : 'USD'
       })),
       setCurrency: (currency) => set({ currency }),
       setDollarRates: (rates) => set({ dollarRates: rates }),
+      setDollarType: (type) => set({ dollarType: type }),
 
       // Cash Management
       cashBalance: 0,
@@ -77,6 +79,7 @@ const useAppStore = create(
         quotes: state.quotes,
         currency: state.currency,
         dollarRates: state.dollarRates,
+        dollarType: state.dollarType,
         cashBalance: state.cashBalance,
         lastFetchedAt: state.lastFetchedAt,
         searchCache: state.searchCache

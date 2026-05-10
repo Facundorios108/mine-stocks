@@ -56,7 +56,7 @@ export default function Dashboard() {
   const isGain = portfolio.totalPnL >= 0
   const balanceReady = !isLoading && !quotesLoading
 
-  const { chartData, isLoading: chartLoading } = usePerformanceChart(null, activeFilter)
+  const { chartData, isLoading: chartLoading, isSynthetic } = usePerformanceChart(null, activeFilter)
 
   const greeting = () => {
     const hour = new Date().getHours()
@@ -86,7 +86,12 @@ export default function Dashboard() {
         <div className="dash-header-left">
           <div className="dash-avatar">
             {user?.photoURL ? (
-              <img src={user.photoURL} alt="" />
+              <img 
+                src={user.photoURL} 
+                alt="" 
+                loading="lazy"
+                onLoad={(e) => e.target.classList.add('loaded')}
+              />
             ) : (
               <span>{firstName[0]}</span>
             )}
@@ -270,6 +275,17 @@ export default function Dashboard() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              {isSynthetic && (
+                <div style={{
+                  fontSize: '11px',
+                  color: 'var(--color-text-secondary)',
+                  textAlign: 'center',
+                  marginTop: '8px',
+                  opacity: 0.7
+                }}>
+                  Datos estimados (históricos no disponibles)
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div key="chart-empty" className="dash-chart-empty glass" {...fadeIn}>

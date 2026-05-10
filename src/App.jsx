@@ -1,20 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
 import { useAuth } from './hooks/useAuth'
 import BottomNav from './components/layout/BottomNav'
-import Dashboard from './pages/Dashboard'
-import StockDetail from './pages/StockDetail'
-import AddPosition from './pages/AddPosition'
-import Portfolio from './pages/Portfolio'
-import Search from './pages/Search'
-import Profile from './pages/Profile'
-import Login from './pages/Login'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import InstallBanner from './components/common/InstallBanner'
 import useAppStore from './store/useAppStore'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, Loader2 } from 'lucide-react'
 import './styles/globals.css'
+
+// Lazy load pages for better initial load performance
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const StockDetail = lazy(() => import('./pages/StockDetail'))
+const AddPosition = lazy(() => import('./pages/AddPosition'))
+const Portfolio = lazy(() => import('./pages/Portfolio'))
+const Search = lazy(() => import('./pages/Search'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Login = lazy(() => import('./pages/Login'))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +28,21 @@ const queryClient = new QueryClient({
     }
   }
 })
+
+// Loading fallback for Suspense
+function PageLoader() {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100dvh',
+      backgroundColor: 'var(--color-background)'
+    }}>
+      <Loader2 size={32} className="spin" style={{ color: 'var(--color-primary)' }} />
+    </div>
+  )
+}
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -111,10 +129,14 @@ function AppContent() {
 
       {/* Main App Content underneath */}
       {!user ? (
-        <Login />
+        <Suspense fallback={<PageLoader />}>
+          <Login />
+        </Suspense>
       ) : (
         <>
-          <AnimatedRoutes />
+          <Suspense fallback={<PageLoader />}>
+            <AnimatedRoutes />
+          </Suspense>
           <BottomNav />
           <InstallBanner />
         </>
@@ -132,10 +154,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Edit2, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { ArrowLeft, Edit2, Trash2, TrendingUp, TrendingDown, DollarSign, X } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
+import { motion, AnimatePresence } from 'framer-motion'
 import { usePortfolio } from '../hooks/usePortfolio'
 import { usePerformanceChart } from '../hooks/usePerformanceChart'
 import { formatCurrency, formatPercent, formatPrice, formatPnL } from '../utils/formatters'
@@ -30,7 +31,7 @@ export default function StockDetail() {
     return getEnrichedPositions().find(p => p.id === id)
   }, [id, getEnrichedPositions])
 
-  const { chartData, isLoading: chartLoading } = usePerformanceChart(position?.id, activeFilter)
+  const { chartData, isLoading: chartLoading, isSynthetic } = usePerformanceChart(position?.id, activeFilter)
 
   useEffect(() => {
     if (!position) {
@@ -121,48 +122,61 @@ export default function StockDetail() {
         {chartLoading ? (
           <div className="shimmer" style={{ width: '100%', height: 200, borderRadius: 16 }} />
         ) : chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="detailGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={isGain ? '#00b86b' : '#ff5252'} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={isGain ? '#00b86b' : '#ff5252'} stopOpacity={0.01} />
-                </linearGradient>
-              </defs>
-              <YAxis domain={['dataMin', 'dataMax']} hide />
-              <Tooltip 
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="dash-chart-tooltip" style={{
-                        background: '#1a1d24',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        color: '#fff',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}>
-                        {formatCurrency(payload[0].value, currency)}
-                      </div>
-                    )
-                  }
-                  return null
-                }}
-                cursor={{ stroke: isGain ? '#00b86b' : '#ff5252', strokeWidth: 1, strokeDasharray: '4 4' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="pnl"
-                stroke={isGain ? '#00b86b' : '#ff5252'}
-                strokeWidth={2}
-                fill="url(#detailGrad)"
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 0, fill: isGain ? '#00b86b' : '#ff5252' }}
-                animationDuration={800}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="detailGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={isGain ? '#00b86b' : '#ff5252'} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={isGain ? '#00b86b' : '#ff5252'} stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <YAxis domain={['dataMin', 'dataMax']} hide />
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="dash-chart-tooltip" style={{
+                          background: '#1a1d24',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                        }}>
+                          {formatCurrency(payload[0].value, currency)}
+                        </div>
+                      )
+                    }
+                    return null
+                  }}
+                  cursor={{ stroke: isGain ? '#00b86b' : '#ff5252', strokeWidth: 1, strokeDasharray: '4 4' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="pnl"
+                  stroke={isGain ? '#00b86b' : '#ff5252'}
+                  strokeWidth={2}
+                  fill="url(#detailGrad)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: isGain ? '#00b86b' : '#ff5252' }}
+                  animationDuration={800}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+            {isSynthetic && (
+              <div style={{
+                fontSize: '11px',
+                color: 'var(--color-text-secondary)',
+                textAlign: 'center',
+                marginTop: '8px',
+                opacity: 0.7
+              }}>
+                Datos estimados (históricos no disponibles)
+              </div>
+            )}
+          </>
         ) : (
           <div className="detail-chart-empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--color-on-surface-variant)', font: 'var(--font-body-sm)' }}>
             No hay suficientes datos históricos.

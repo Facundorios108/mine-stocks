@@ -350,3 +350,19 @@ ul, ol {
 .modal-footer button {
   flex: 1;
 }
+
+/* ── Loading Spinner Animation ── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Lazy Loading Images ── */
+img[loading="lazy"] {
+  opacity: 0;
+  transition: opacity 0.3s ease-in;
+}
+
+img[loading="lazy"].loaded {
+  opacity: 1;
+}

@@ -290,12 +290,12 @@ export default function AddPosition() {
             </div>
           ) : results.length > 0 ? (
             <div className="add-results">
-              {results.map(r => {
+              {results.map((r, idx) => {
                 const inPortfolio = getEnrichedPositions().some(p => 
                   p.symbol?.trim().toUpperCase() === r.symbol?.trim().toUpperCase() && p.shares > 0
                 );
                 return (
-                  <button key={r.symbol} className="add-result-item" onClick={() => selectAsset(r)}>
+                  <button key={`${r.symbol}-${idx}`} className="add-result-item" onClick={() => selectAsset(r)}>
                     <div className="add-result-avatar">
                       <span>{r.symbol.slice(0, 2)}</span>
                     </div>
@@ -356,24 +356,36 @@ export default function AddPosition() {
             }
 
             const displayAvgCost = existing.averageCost * exchangeRate
+            const isClosed = existing.shares === 0
+            const sharesText = existing.shares === 1 ? 'acción' : 'acciones'
 
             return (
               <div className="existing-position-info">
                 <div className="info-header">
                   <Check size={16} className="info-icon" />
-                  <span>Ya tenés esta posición ({existing.shares > 0 ? 'Abierta' : 'Cerrada'})</span>
+                  <span>
+                    {isClosed 
+                      ? `Tenés una posición cerrada de ${normalizedFormSymbol}` 
+                      : `Ya tenés ${existing.shares} ${sharesText} de ${normalizedFormSymbol}`
+                    }
+                  </span>
                 </div>
-                <div className="info-details">
-                  <div className="detail-item">
-                    <span className="detail-label">Shares actuales</span>
-                    <span className="detail-value">{existing.shares}</span>
+                {!isClosed && (
+                  <div className="info-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Costo promedio actual</span>
+                      <span className="detail-value">
+                        {currency} {displayAvgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Costo promedio ({currency})</span>
-                    <span className="detail-value">{displayAvgCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-                <p className="info-footer">La nueva compra se unificará con la existente.</p>
+                )}
+                <p className="info-footer">
+                  {isClosed 
+                    ? '✨ Esta compra reabrirá tu posición con el nuevo precio de entrada.' 
+                    : '📊 Las nuevas acciones se sumarán y se recalculará tu costo promedio.'
+                  }
+                </p>
               </div>
             )
           })()}

@@ -75,12 +75,14 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
 
   // 4. Align data and calculate PnL
   const chartData = useMemo(() => {
-    if (!candlesBySymbol || positions.length === 0) return []
+    if (!candlesBySymbol || positions.length === 0) return { data: [], isSynthetic: false }
 
     // Get all unique timestamps
     const allTimestamps = new Set()
+    let hasRealData = false
     Object.values(candlesBySymbol).forEach(data => {
-      if (data && data.s === 'ok' && data.t) {
+      if (data && data.s === 'ok' && data.t && data.t.length > 0) {
+        hasRealData = true
         data.t.forEach(t => allTimestamps.add(t))
       }
     })
@@ -95,7 +97,7 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
     }
     
     const exchangeRate = currency === 'ARS' && dollarRates 
-      ? (dollarRates[dollarType]?.sell || 1) 
+      ? (dollarRates[dollarType || 'oficial']?.sell || dollarRates['oficial']?.sell || 1) 
       : 1
 
     const finalData = sortedTimestamps.map(t => {
@@ -174,10 +176,12 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
       })
     }
 
-    // Quick Fix: If chart is still empty but we have positions, 
-    // add a dummy point with current value to avoid "broken" feel.
+    // Fallback: If chart is still empty but we have positions,
+    // generate synthetic historical data based on current portfolio value
     if (finalData.length === 0 && positions.length > 0) {
       const now = Math.floor(Date.now() / 1000)
+      const config = FILTER_MAP[timeFilter] || FILTER_MAP['1M']
+      
       const currentStats = positions.reduce((acc, p) => {
         const val = p.shares * (p.currentPriceUsd || p.averageCost || 0) * exchangeRate
         const cst = p.shares * p.averageCost * exchangeRate
@@ -185,22 +189,37 @@ export function usePerformanceChart(positionId = null, timeFilter = '1M') {
       }, { v: positionId ? 0 : (cashBalance * exchangeRate), c: positionId ? 0 : (cashBalance * exchangeRate) })
 
       if (currentStats.v > 0 || currentStats.c > 0) {
-        const point = {
-          t: now,
-          date: new Date(now * 1000).toLocaleDateString(),
-          v: currentStats.v,
-          pnl: currentStats.v - currentStats.c
+        // Generate synthetic data points (simulate historical growth/decline)
+        const numPoints = Math.min(config.days, 30) // Max 30 points for smooth chart
+        const pnlPercent = currentStats.c > 0 ? ((currentStats.v - currentStats.c) / currentStats.c) : 0
+        
+        // Create points going backwards from now
+        for (let i = numPoints; i >= 0; i--) {
+          const daysAgo = Math.floor((i / numPoints) * config.days)
+          const timestamp = now - (daysAgo * 86400)
+          
+          // Linear interpolation from cost basis to current value
+          const progress = 1 - (i / numPoints)
+          const interpolatedValue = currentStats.c + (currentStats.v - currentStats.c) * progress
+          
+          finalData.push({
+            t: timestamp,
+            date: new Date(timestamp * 1000).toLocaleDateString(),
+            v: interpolatedValue,
+            pnl: interpolatedValue - currentStats.c
+          })
         }
-        // Add twice to ensure it renders as a line
-        finalData.push({ ...point, t: now - 86400 }, point)
+        
+        return { data: finalData, isSynthetic: true }
       }
     }
 
-    return finalData
-  }, [candlesBySymbol, positions, currency, dollarRates, dollarType])
+    return { data: finalData, isSynthetic: !hasRealData || finalData.length === 0 }
+  }, [candlesBySymbol, positions, currency, dollarRates, dollarType, cashBalance, positionId, timeFilter])
 
   return {
-    chartData,
-    isLoading
+    chartData: chartData.data || [],
+    isLoading,
+    isSynthetic: chartData.isSynthetic || false
   }
 }
